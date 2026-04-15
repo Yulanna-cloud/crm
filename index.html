@@ -35,7 +35,7 @@ td{padding:9px 12px;border-bottom:1px solid #e8ecf0;vertical-align:middle}
 tr:last-child td{border-bottom:none}
 tr:hover td{background:#e8f0fc}
 
-/* ЦВЕТОВОЕ ВЫДЕЛЕНИЕ СТРОК (Только статусы) */
+/* ЦВЕТОВОЕ ВЫДЕЛЕНИЕ СТРОК */
 .row-offer td { background-color: #ecfdf5 !important; }    /* Нежно-зеленый для Оффера */
 .row-refusal td { background-color: #f3f4f6 !important; color: #9ca3af; } /* Серый для Отказа */
 .row-noshow td { background-color: #fff7ed !important; }  /* Нежно-оранжевый для "Не вышла" */
@@ -66,4 +66,181 @@ tr:hover td{background:#e8f0fc}
 .fr textarea{height:70px;resize:vertical;font-family:Arial,sans-serif}
 .f2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
 .mfoot{display:flex;justify-content:flex-end;gap:8px;margin-top:16px;padding-top:12px;border-top:1px solid #eee}
-.hist-item{padding:10px 14px;border-
+.hist-item{padding:10px 14px;border-bottom:1px solid #f0f0f0;display:grid;grid-template-columns:90px 150px 1fr 60px;gap:10px;font-size:13px}
+.hist-item:last-child{border-bottom:none}
+.upload-area{border:2px dashed #ccc;border-radius:8px;padding:14px;text-align:center;color:#888;font-size:13px;cursor:pointer;margin-bottom:12px}
+.upload-area:hover{background:#f5f5f5;border-color:#1F3864}
+.section-title{font-size:13px;font-weight:600;color:#1F3864;margin:12px 0 8px;padding-bottom:6px;border-bottom:1px solid #eee}
+</style>
+</head>
+<body>
+<div class="app">
+<div class="topbar">
+  <h1>🗂 CRM — Кандидаты</h1>
+  <div class="filters">
+    <input type="text" id="srch" placeholder="🔍 Поиск..." style="width:140px">
+    <label style="display:flex;align-items:center;gap:6px;font-size:13px;cursor:pointer;padding:0 10px;height:32px;border:1px solid #1976d2;border-radius:6px;background:#e3f2fd;color:#1565c0;font-weight:600;white-space:nowrap">
+      <input type="checkbox" id="activeOnly" checked onchange="renderTable()" style="width:14px;height:14px;accent-color:#1565c0"> Только активные
+    </label>
+    <input type="date" id="fDate" onchange="renderTable()" title="Фильтр по дате встречи" style="height:32px;font-size:13px;border:1px solid #ccc;border-radius:6px;padding:0 8px;background:#fff">
+    <button class="btn" onclick="setToday()" title="Показать только сегодня" style="background:#fff8e1;border-color:#f9a825;color:#f57f17;font-weight:600;white-space:nowrap">📅 Сегодня</button>
+    <button class="btn" onclick="clearDate()" title="Сбросить дату" style="font-size:12px">✕ Дата</button>
+    <select id="fV"><option value="">Все вакансии</option><option>Менеджер по продажам</option><option>РОП</option><option>Project Manager</option></select>
+    <div style="position:relative;display:inline-block">
+      <button class="btn" onclick="toggleDD('stageDD')" id="stageBtnLabel" style="min-width:120px;text-align:left">Все этапы ▾</button>
+      <div id="stageDD" style="display:none;position:absolute;top:34px;left:0;background:#fff;border:1px solid #ccc;border-radius:8px;box-shadow:0 4px 16px rgba(0,0,0,0.12);z-index:100;min-width:230px;padding:8px 0">
+        <label style="display:flex;align-items:center;gap:8px;padding:6px 14px;cursor:pointer;font-size:13px"><input type="checkbox" value="Интервью HR" onchange="applyStageFilter()"> Интервью HR</label>
+        <label style="display:flex;align-items:center;gap:8px;padding:6px 14px;cursor:pointer;font-size:13px"><input type="checkbox" value="Интервью с руководителем" onchange="applyStageFilter()"> Интервью с руководителем</label>
+        <label style="display:flex;align-items:center;gap:8px;padding:6px 14px;cursor:pointer;font-size:13px"><input type="checkbox" value="Отклик" onchange="applyStageFilter()"> Отклик</label>
+        <label style="display:flex;align-items:center;gap:8px;padding:6px 14px;cursor:pointer;font-size:13px"><input type="checkbox" value="Финал" onchange="applyStageFilter()"> Финал</label>
+        <label style="display:flex;align-items:center;gap:8px;padding:6px 14px;cursor:pointer;font-size:13px"><input type="checkbox" value="Оффер" onchange="applyStageFilter()"> Оффер</label>
+        <label style="display:flex;align-items:center;gap:8px;padding:6px 14px;cursor:pointer;font-size:13px"><input type="checkbox" value="Обучение" onchange="applyStageFilter()"> Обучение</label>
+        <label style="display:flex;align-items:center;gap:8px;padding:6px 14px;cursor:pointer;font-size:13px"><input type="checkbox" value="Выход" onchange="applyStageFilter()"> Выход</label>
+        <div style="border-top:1px solid #eee;margin:4px 0;padding:4px 14px"><button class="btn btn-sm" onclick="clearStageFilter()">Сбросить</button></div>
+      </div>
+    </div>
+    <div style="position:relative;display:inline-block">
+      <button class="btn" onclick="toggleDD('statusDD')" id="statusBtnLabel" style="min-width:120px;text-align:left">Все статусы ▾</button>
+      <div id="statusDD" style="display:none;position:absolute;top:34px;left:0;background:#fff;border:1px solid #ccc;border-radius:8px;box-shadow:0 4px 16px rgba(0,0,0,0.12);z-index:100;min-width:200px;padding:8px 0">
+        <label style="display:flex;align-items:center;gap:8px;padding:6px 14px;cursor:pointer;font-size:13px"><input type="checkbox" value="В работе" onchange="applyStatusFilter()"> В работе</label>
+        <label style="display:flex;align-items:center;gap:8px;padding:6px 14px;cursor:pointer;font-size:13px"><input type="checkbox" value="Отказался сам" onchange="applyStatusFilter()"> Отказался сам</label>
+        <label style="display:flex;align-items:center;gap:8px;padding:6px 14px;cursor:pointer;font-size:13px"><input type="checkbox" value="Отказ" onchange="applyStatusFilter()"> Отказ</label>
+        <label style="display:flex;align-items:center;gap:8px;padding:6px 14px;cursor:pointer;font-size:13px"><input type="checkbox" value="Оффер" onchange="applyStatusFilter()"> Оффер</label>
+        <label style="display:flex;align-items:center;gap:8px;padding:6px 14px;cursor:pointer;font-size:13px"><input type="checkbox" value="Вышел" onchange="applyStatusFilter()"> Вышел</label>
+        <label style="display:flex;align-items:center;gap:8px;padding:6px 14px;cursor:pointer;font-size:13px"><input type="checkbox" value="Не вышла на собес" onchange="applyStatusFilter()"> Не вышла на собес</label>
+        <label style="display:flex;align-items:center;gap:8px;padding:6px 14px;cursor:pointer;font-size:13px"><input type="checkbox" value="Собеседование с РОП" onchange="applyStatusFilter()"> Собеседование с РОП</label>
+        <div style="border-top:1px solid #eee;margin:4px 0;padding:4px 14px"><button class="btn btn-sm" onclick="clearStatusFilter()">Сбросить</button></div>
+      </div>
+    </div>
+    <button class="btn btn-save" onclick="exportData()">💾 Сохранить данные</button>
+    <label class="btn btn-load" style="cursor:pointer">📂 Загрузить данные<input type="file" accept=".json,.txt" onchange="importData(event)" style="display:none"></label>
+    <button class="btn btn-primary" onclick="openAdd()">+ Добавить</button>
+  </div>
+</div>
+<div class="stats" id="stats"></div>
+<div class="tabs">
+  <div class="tab active" onclick="switchTab('c',this)">Кандидаты</div>
+  <div class="tab" onclick="switchTab('h',this)">История событий</div>
+</div>
+<div id="tc">
+  <div class="tbl-wrap">
+    <table><thead><tr id="thead-row"></tr></thead><tbody id="tb"></tbody></table>
+  </div>
+</div>
+<div id="th" style="display:none">
+  <div class="tbl-wrap"><div id="hb"></div></div>
+</div>
+</div>
+<div id="mdl" style="display:none"></div>
+
+<script>
+const STAGES=['Отклик','Интервью HR','Интервью с руководителем','Финал','Оффер','Обучение','Выход'];
+const STATUSES=['В работе','Отказался сам','Отказ','Оффер','Вышел','Не вышла на собес','Собеседование с РОП'];
+const VACANCIES=['Менеджер по продажам','РОП','Project Manager'];
+const EVENTS=['Добавлен кандидат','Интервью HR','Интервью с руководителем','Тестовое задание','Оффер отправлен','Оффер принят','Отказался сам','Отказ компании','Выход на работу'];
+const REFUSE_REASONS=['','Слабая','Не пришла на интервью','Не подходит доход','Приняла другой оффер','Другое'];
+const INACTIVE=['Отказ','Отказался сам','Отказалась сама','Вышел'];
+
+// Ваши данные
+const DEFAULT_C=[
+  { "id": "K-001", "added": "2025-04-11", "name": "Орлова Екатерина", "vacancy": "РОП", "stage": "Финал", "status": "Отказалась сама", "comment": "Отказалась в пользу другой компании" },
+  { "id": "K-009", "added": "2025-04-11", "name": "Кузнецова Анна", "vacancy": "Менеджер по продажам", "stage": "Обучение", "status": "Вышел", "comment": "Вышла на обучение 10.04" },
+  { "id": "K-017", "added": "2026-04-11", "name": "Курбанова Наталья", "vacancy": "Менеджер по продажам", "stage": "Интервью HR", "status": "Оффер", "nextDate": "2026-04-13", "meetTime": "14:00" },
+  { "id": "K-022", "added": "2026-04-13", "name": "Соболевская Юлия Николаевна", "vacancy": "Менеджер по продажам", "stage": "Интервью HR", "status": "Не вышла на собес", "nextDate": "2026-04-14", "meetTime": "15:45" }
+];
+
+let D=load();
+
+function load(){
+  const cs=localStorage.getItem('crm2026_c');
+  const hs=localStorage.getItem('crm2026_h');
+  return{
+    candidates:cs?JSON.parse(cs):DEFAULT_C,
+    history:hs?JSON.parse(hs):[]
+  };
+}
+
+function persist(data){
+  localStorage.setItem('crm2026_c',JSON.stringify(data.candidates));
+  localStorage.setItem('crm2026_h',JSON.stringify(data.history));
+}
+
+function renderTable(){
+  renderHeaders();
+  const q=document.getElementById('srch').value.toLowerCase();
+  const activeOnly=document.getElementById('activeOnly').checked;
+  
+  let rows=D.candidates.filter(c=>{
+    if(q && !c.name.toLowerCase().includes(q)) return false;
+    if(activeOnly && INACTIVE.includes(c.status)) return false;
+    return true;
+  });
+
+  const tb=document.getElementById('tb');
+  tb.innerHTML=rows.map(c=>{
+    // Добавляем класс для цвета всей строки
+    let rowClass = '';
+    if(c.status === 'Оффер') rowClass = 'row-offer';
+    if(c.status === 'Отказ') rowClass = 'row-refusal';
+    if(c.status === 'Не вышла на собес') rowClass = 'row-noshow';
+
+    return `<tr class="${rowClass}">
+      <td style="color:#999">${c.id}</td>
+      <td style="font-weight:700">${c.name}</td>
+      <td>${c.vacancy}</td>
+      <td>${c.stage}</td>
+      <td><span class="badge ${getBadgeCls(c.status)}">${c.status}</span></td>
+      <td>${c.next || '—'}</td>
+      <td>${c.nextDate || ''}</td>
+      <td style="font-weight:700">${c.meetTime || ''}</td>
+      <td>—</td>
+      <td>${c.comment || ''}</td>
+      <td>—</td>
+      <td>—</td>
+      <td><button class="btn btn-sm" onclick="openEdit('${c.id}')">✏️</button></td>
+    </tr>`;
+  }).join('');
+}
+
+function getBadgeCls(s){
+  const m={'В работе':'bw','Оффер':'bo','Вышел':'bout','Отказ':'br','Не вышла на собес':'bnv'};
+  return m[s]||'bdef';
+}
+
+function renderHeaders(){
+  const h=['ID','ФИО','Вакансия','Этап','Статус','След. шаг','Дата','Время','Причина','Комментарий','Резюме','PDF',''];
+  document.getElementById('thead-row').innerHTML=h.map(x=>`<th>${x}</th>`).join('');
+}
+
+function renderStats(){
+  const c=D.candidates;
+  document.getElementById('stats').innerHTML=`
+    <div class="stat"><div class="stat-n">${c.filter(x=>x.status==='В работе').length}</div><div class="stat-l">В работе</div></div>
+    <div class="stat"><div class="stat-n">${c.filter(x=>x.status==='Оффер').length}</div><div class="stat-l">Офферы</div></div>
+    <div class="stat"><div class="stat-n">${c.filter(x=>x.status==='Не вышла на собес').length}</div><div class="stat-l">Не вышли</div></div>
+    <div class="stat"><div class="stat-n">${c.filter(x=>x.status==='Отказ').length}</div><div class="stat-l">Отказы</div></div>`;
+}
+
+function exportData(){
+  const blob=new Blob([JSON.stringify(D)],{type:'application/json'});
+  const a=document.createElement('a');
+  a.href=URL.createObjectURL(blob);
+  a.download='crm_backup.json';
+  a.click();
+}
+
+function importData(e){
+  const reader=new FileReader();
+  reader.onload=function(ev){
+    D=JSON.parse(ev.target.result);
+    persist(D); render();
+  };
+  reader.readAsText(e.target.files[0]);
+}
+
+function render(){ renderStats(); renderTable(); }
+document.getElementById('srch').addEventListener('input',renderTable);
+render();
+</script>
+</body>
+</html>
