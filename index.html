@@ -344,15 +344,25 @@ function renderStats() {
 
 function renderHeaders() {
   const cols = [
-    { key: 'id', label: 'ID' }, { key: 'name', label: 'ФИО' }, { key: 'vacancy', label: 'Вакансия' },
-    { key: 'stage', label: 'Этап' }, { key: 'status', label: 'Статус' },
-    { key: '', label: 'Следующий шаг' }, { key: 'date', label: 'Дата' }, { key: '', label: 'Время' },
-    { key: '', label: 'Телефон' }, { key: '', label: 'Email' },
-    { key: '', label: 'Причина отказа' }, { key: '', label: 'Комментарий' },
-    { key: '', label: 'Резюме' }, { key: '', label: 'PDF/HH' }, { key: '', label: '' }
+    { key: 'id', label: 'ID', width: '60px' },
+    { key: 'name', label: 'ФИО', width: '180px' },
+    { key: 'vacancy', label: 'Вакансия', width: '150px' },
+    { key: 'stage', label: 'Этап', width: '130px' },
+    { key: 'status', label: 'Статус', width: '110px' },
+    { key: '', label: 'Следующий шаг', width: '160px' },
+    { key: 'date', label: 'Дата', width: '90px' },
+    { key: '', label: 'Время', width: '70px' },
+    { key: '', label: 'Телефон', width: '130px' },
+    { key: '', label: 'Причина отказа', width: '120px' },
+    { key: '', label: 'Комментарий', width: '200px' },
+    { key: '', label: 'Резюме', width: '70px' },
+    { key: '', label: 'PDF/HH', width: '70px' },
+    { key: '', label: '', width: '50px' }
   ];
   document.getElementById('thead-row').innerHTML = cols.map(c =>
-    `<th${c.key ? ` onclick="sortBy('${c.key}')"` : ''}>${c.label}${c.key ? arrow(c.key) : ''}</th>`
+    `<th${c.key ? ` onclick="sortBy('${c.key}')"` : ''} style="width:${c.width};padding:10px 12px;background:#1F3864;color:#fff;font-weight:700;border-bottom:2px solid #162a4a;white-space:nowrap${c.key ? ';cursor:pointer' : ''}">
+      ${c.label}${c.key ? arrow(c.key) : ''}
+    </th>`
   ).join('');
 }
 
@@ -389,21 +399,23 @@ function renderTable() {
 
   const tb = document.getElementById('tb');
   if (!rows.length) {
-    tb.innerHTML = `<tr><td colspan="15" class="empty">Нет кандидатов</td></tr>`;
+    tb.innerHTML = `<tr><td colspan="14" class="empty">Нет кандидатов</td></tr>`;
     return;
   }
 
   tb.innerHTML = rows.map(c => {
-    let phone = '', email = '';
+    let phone = '';
     if (c.contacts) {
       const parts = c.contacts.split(' / ');
       for (let part of parts) {
-        if (part.includes('@')) email = part;
-        else if (part.match(/[\d\+]/)) phone = part;
+        if (part.match(/[\d\+]/)) {
+          phone = part;
+          break;
+        }
       }
     }
-    const resume = c.resumeLink ? `<a href="${c.resumeLink}" target="_blank">Открыть</a>` : '—';
-    const hhOrPdf = c.hhLink ? `<a href="${c.hhLink}" target="_blank">HH ↗</a>` : (c.pdfName ? `📄 ${c.pdfName.length > 15 ? c.pdfName.slice(0,13)+'…' : c.pdfName}` : '—');
+    const resume = c.resumeLink ? `<a href="${c.resumeLink}" target="_blank" style="color:#185FA5">Открыть</a>` : '—';
+    const hhOrPdf = c.hhLink ? `<a href="${c.hhLink}" target="_blank" style="color:#d6001c">HH ↗</a>` : (c.pdfName ? `📄 ${c.pdfName.length > 15 ? c.pdfName.slice(0,13)+'…' : c.pdfName}` : '—');
     const isRefused = INACTIVE.includes(c.status);
     const refReason = isRefused && c.refuseReason ? `<span class="badge br">${c.refuseReason}</span>` : '';
     return `<tr class="${rclass(c)}">
@@ -416,13 +428,12 @@ function renderTable() {
       <td>${dlabel(c.nextDate)}</td>
       <td>${c.meetTime || ''}</td>
       <td>${phone || '—'}</td>
-      <td>${email || '—'}</td>
       <td>${refReason}</td>
-      <td style="max-width:150px">${c.comment || ''}</td>
+      <td style="max-width:200px; white-space:normal">${c.comment || ''}</td>
       <td>${resume}</td>
       <td>${hhOrPdf}</td>
       <td><button class="btn btn-sm" onclick="openEdit('${c.id}')">✏️</button></td>
-    </tr>`;
+     </tr>`;
   }).join('');
 }
 
@@ -488,17 +499,18 @@ function loadPDFJS() {
 }
 
 function extractFromPDFText(text) {
-  const result = { name: '', phone: '', email: '' };
+  const result = { name: '', phone: '' };
   
+  // ФИО
   const namePattern = /([А-Я][а-я]+)\s+([А-Я][а-я]+)\s+([А-Я][а-я]+)/;
   const nameMatch = text.substring(0, 500).match(namePattern);
   if (nameMatch) result.name = nameMatch[0];
   
+  // Телефон — усиленный поиск
   const phonePatterns = [
-    /\+7\s?\(?\d{3}\)?\s?\d{3}[-\s]?\d{2}[-\s]?\d{2}/,
-    /8\s?\(?\d{3}\)?\s?\d{3}[-\s]?\d{2}[-\s]?\d{2}/,
-    /\+7\d{10}/,
-    /8\d{10}/
+    /(\+7|8)[\s\-]?\(?(\d{3})\)?[\s\-]?(\d{3})[\s\-]?(\d{2})[\s\-]?(\d{2})/,
+    /(\+7|8)\s?\(?\d{3}\)?\s?\d{3}[-\s]?\d{2}[-\s]?\d{2}/,
+    /(\+7|8)\d{10}/
   ];
   for (const pattern of phonePatterns) {
     const match = text.match(pattern);
@@ -510,11 +522,6 @@ function extractFromPDFText(text) {
       break;
     }
   }
-  
-  const emailPattern = /[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/;
-  const emailMatch = text.match(emailPattern);
-  if (emailMatch) result.email = emailMatch[0].toLowerCase();
-  
   return result;
 }
 
@@ -542,18 +549,23 @@ async function parsePDF(e) {
     
     if (extracted.name) document.getElementById('fn').value = extracted.name;
     if (extracted.phone) document.getElementById('fphone').value = extracted.phone;
-    if (extracted.email) document.getElementById('femail').value = extracted.email;
     
-    if (extracted.phone || extracted.email) {
-      area.innerHTML = '✅ Телефон и Email загружены из резюме!';
+    if (extracted.phone) {
+      area.innerHTML = '✅ Телефон загружен из резюме!';
       area.style.borderColor = '#639922';
       area.style.background = '#EAF3DE';
       area.style.color = '#3B6D11';
     } else {
-      area.innerHTML = '⚠️ Не удалось найти телефон или email. Заполните вручную.';
+      area.innerHTML = '⚠️ Не удалось найти телефон. Заполните вручную.';
+      area.style.borderColor = '#F9A825';
+      area.style.background = '#FFF8E1';
+      area.style.color = '#E65100';
     }
   } catch (err) {
-    area.innerHTML = '⚠️ Не удалось прочитать PDF. Заполните вручную.';
+    console.error(err);
+    area.innerHTML = '⚠️ Ошибка чтения PDF. Заполните вручную.';
+    area.style.borderColor = '#E24B4A';
+    area.style.color = '#A32D2D';
   }
 }
 
@@ -563,7 +575,7 @@ function openAdd() {
   
   modal(`<h2>➕ Новый кандидат</h2>
     <div class="upload-area" onclick="document.getElementById('pdfIn').click()">
-      📄 Загрузить PDF резюме — телефон и email заполнятся автоматически
+      📄 Загрузить PDF резюме — телефон заполнится автоматически
       <input type="file" id="pdfIn" accept=".pdf" style="display:none" onchange="parsePDF(event)">
     </div>
     <div class="section-title">Основные данные</div>
@@ -576,10 +588,7 @@ function openAdd() {
       <div class="fr"><label>Вакансия</label><select id="fv">${sel(VACANCIES, 'Менеджер по продажам')}</select></div>
       <div class="fr"><label>Источник</label><input id="fs" placeholder="hh.ru"></div>
     </div>
-    <div class="f2">
-      <div class="fr"><label>📞 Телефон</label><input id="fphone" placeholder="+7 999 000-00-00"></div>
-      <div class="fr"><label>✉️ Email</label><input id="femail" placeholder="email@mail.ru"></div>
-    </div>
+    <div class="fr"><label>📞 Телефон</label><input id="fphone" placeholder="+7 999 000-00-00"></div>
     <div class="section-title">Воронка</div>
     <div class="f2">
       <div class="fr"><label>Этап</label><select id="fst">${sel(STAGES, 'Отклик')}</select></div>
@@ -605,11 +614,7 @@ function saveNew() {
   if (!name) { alert('Введите ФИО'); return; }
   
   const phone = document.getElementById('fphone').value.trim();
-  const email = document.getElementById('femail').value.trim();
-  let contacts = '';
-  if (phone && email) contacts = phone + ' / ' + email;
-  else if (phone) contacts = phone;
-  else if (email) contacts = email;
+  const contacts = phone || '';
   
   D.candidates.push({
     id: document.getElementById('fi').value,
@@ -639,14 +644,8 @@ function openEdit(id) {
   const c = D.candidates.find(x => x.id === id);
   if (!c) return;
   
-  let phone = '', email = '';
-  if (c.contacts) {
-    const parts = c.contacts.split(' / ');
-    for (let part of parts) {
-      if (part.includes('@')) email = part;
-      else if (part.match(/[\d\+]/)) phone = part;
-    }
-  }
+  let phone = '';
+  if (c.contacts && c.contacts.match(/[\d\+]/)) phone = c.contacts;
   
   modal(`<h2>✏️ ${c.name}</h2>
     <div class="f2">
@@ -658,10 +657,7 @@ function openEdit(id) {
       <div class="fr"><label>Вакансия</label><select id="fv">${sel(VACANCIES, c.vacancy)}</select></div>
       <div class="fr"><label>Источник</label><input id="fs" value="${c.source || ''}"></div>
     </div>
-    <div class="f2">
-      <div class="fr"><label>📞 Телефон</label><input id="fphone" value="${phone}"></div>
-      <div class="fr"><label>✉️ Email</label><input id="femail" value="${email}"></div>
-    </div>
+    <div class="fr"><label>📞 Телефон</label><input id="fphone" value="${phone}"></div>
     <div class="f2">
       <div class="fr"><label>Этап</label><select id="fst">${sel(STAGES, c.stage)}</select></div>
       <div class="fr"><label>Статус</label><select id="fsts" onchange="toggleRefuse(this,'editRefuse')">${sel(STATUSES, c.status)}</select></div>
@@ -684,17 +680,12 @@ function openEdit(id) {
 function saveEdit(id) {
   const c = D.candidates.find(x => x.id === id);
   const phone = document.getElementById('fphone').value.trim();
-  const email = document.getElementById('femail').value.trim();
-  let contacts = '';
-  if (phone && email) contacts = phone + ' / ' + email;
-  else if (phone) contacts = phone;
-  else if (email) contacts = email;
   
   c.added = document.getElementById('fa').value;
   c.name = document.getElementById('fn').value.trim();
   c.vacancy = document.getElementById('fv').value;
   c.source = document.getElementById('fs').value;
-  c.contacts = contacts;
+  c.contacts = phone;
   c.stage = document.getElementById('fst').value;
   c.status = document.getElementById('fsts').value;
   c.next = document.getElementById('fnx').value;
@@ -714,13 +705,7 @@ function saveEdit(id) {
 function saveEditThenHist(id) {
   const c = D.candidates.find(x => x.id === id);
   if (c && document.getElementById('fn')) {
-    const phone = document.getElementById('fphone').value.trim();
-    const email = document.getElementById('femail').value.trim();
-    let contacts = '';
-    if (phone && email) contacts = phone + ' / ' + email;
-    else if (phone) contacts = phone;
-    else if (email) contacts = email;
-    c.contacts = contacts;
+    c.contacts = document.getElementById('fphone').value.trim();
     c.stage = document.getElementById('fst').value;
     c.status = document.getElementById('fsts').value;
     if (document.getElementById('frr')) c.refuseReason = document.getElementById('frr').value;
