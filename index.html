@@ -145,7 +145,6 @@ function loadData() {
   if (saved) {
     D.candidates = JSON.parse(saved);
   } else {
-    // Пустой массив, пользователь сам добавит кандидатов
     D.candidates = [];
   }
   
@@ -242,7 +241,6 @@ function sel(opts, val) {
   return opts.map(o => `<option${o === val ? ' selected' : ''}>${o}</option>`).join('');
 }
 
-// ИСПРАВЛЕНО 2: Добавлен статус "Отказалась сама"
 function toggleRefuse(s, divId) {
   const d = document.getElementById(divId);
   if (d) {
@@ -366,6 +364,7 @@ function renderHeaders() {
     { key: 'id', label: 'ID' }, { key: 'name', label: 'ФИО' }, { key: 'vacancy', label: 'Вакансия' },
     { key: 'stage', label: 'Этап' }, { key: 'status', label: 'Статус' },
     { key: '', label: 'Следующий шаг' }, { key: 'date', label: 'Дата' }, { key: '', label: 'Время' },
+    { key: '', label: 'Телефон' }, { key: '', label: 'Email' },
     { key: '', label: 'Причина отказа' }, { key: '', label: 'Комментарий' },
     { key: '', label: 'Резюме' }, { key: '', label: 'PDF/HH' }, { key: '', label: '' }
   ];
@@ -409,7 +408,7 @@ function renderTable() {
 
   const tb = document.getElementById('tb');
   if (!rows.length) {
-    tb.innerHTML = `<tr><td colspan="13" class="empty">Нет кандидатов</td></tr>`;
+    tb.innerHTML = `<tr><td colspan="15" class="empty">Нет кандидатов</td></tr>`;
     return;
   }
 
@@ -421,6 +420,21 @@ function renderTable() {
     const isRefused = INACTIVE.includes(c.status);
     const refReason = isRefused && c.refuseReason ? `<span style="background:#FCEBEB;color:#A32D2D;padding:2px 7px;border-radius:8px;font-size:11px;font-weight:700">${c.refuseReason}</span>` : '';
     const commentStyle = isRefused ? 'color:#A32D2D;font-weight:600' : 'color:#555';
+    
+    // Разделяем телефон и email
+    let phone = '', email = '';
+    if (c.contacts) {
+      const parts = c.contacts.split(' / ');
+      // Определяем что телефон, а что email
+      for (let part of parts) {
+        if (part.includes('@')) {
+          email = part;
+        } else if (part.match(/[\d\+]/)) {
+          phone = part;
+        }
+      }
+    }
+    
     return `<tr class="${rclass(c)}">
       <td style="color:#999;font-size:12px">${c.id}</td>
       <td style="font-weight:700;white-space:nowrap">${c.name}</td>
@@ -430,6 +444,8 @@ function renderTable() {
       <td style="max-width:160px;font-size:12px">${c.next || '—'}</td>
       <td style="white-space:nowrap;font-size:12px">${dlabel(c.nextDate)}</td>
       <td style="font-size:13px;font-weight:700;color:#1F3864;white-space:nowrap">${c.meetTime || ''}</td>
+      <td style="font-size:12px;white-space:nowrap">${phone || '—'}</td>
+      <td style="font-size:12px">${email || '—'}</td>
       <td class="keep-visible">${refReason}</td>
       <td class="keep-visible" style="max-width:150px;font-size:12px;${commentStyle}">${c.comment || ''}</td>
       <td>${resume}</td>
@@ -461,348 +477,4 @@ function render() {
 }
 
 function switchTab(t, el) {
-  document.querySelectorAll('.tab').forEach(x => x.classList.remove('active'));
-  el.classList.add('active');
-  document.getElementById('tc').style.display = t === 'c' ? '' : 'none';
-  document.getElementById('th').style.display = t === 'h' ? '' : 'none';
-}
-
-// ========== PDF ПАРСИНГ ==========
-let pendingPdfName = '';
-
-function loadPDFJS() {
-  return new Promise((resolve, reject) => {
-    if (typeof pdfjsLib !== 'undefined') {
-      resolve();
-      return;
-    }
-    const script = document.createElement('script');
-    script.src = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.min.js';
-    script.onload = () => {
-      pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.worker.min.js';
-      resolve();
-    };
-    script.onerror = reject;
-    document.head.appendChild(script);
-  });
-}
-
-function extractFromPDFText(text) {
-  const result = { name: '', phone: '', email: '' };
-  
-  const namePatterns = [
-    /([А-Я][а-я]+)\s+([А-Я][а-я]+)\s+([А-Я][а-я]+)/,
-    /([А-Я][а-я]+)\s+([А-Я][а-я]+)/
-  ];
-  
-  for (const pattern of namePatterns) {
-    const match = text.match(pattern);
-    if (match) {
-      result.name = match[0];
-      break;
-    }
-  }
-  
-  const phonePattern = /(?:\+7|8)[\s\-]?\(?[0-9]{3}\)?[\s\-]?[0-9]{3}[\s\-]?[0-9]{2}[\s\-]?[0-9]{2}/;
-  const phoneMatch = text.match(phonePattern);
-  if (phoneMatch) {
-    let phone = phoneMatch[0].replace(/[\s\-\(\)]/g, '');
-    if (phone.startsWith('8')) phone = '+7' + phone.substring(1);
-    else if (!phone.startsWith('+')) phone = '+' + phone;
-    result.phone = phone;
-  }
-  
-  const emailPattern = /[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/;
-  const emailMatch = text.match(emailPattern);
-  if (emailMatch) result.email = emailMatch[0].toLowerCase();
-  
-  return result;
-}
-
-async function parsePDF(e) {
-  const file = e.target.files[0];
-  if (!file) return;
-  
-  pendingPdfName = file.name;
-  const area = document.querySelector('.upload-area');
-  area.innerHTML = '⏳ Читаю резюме...';
-  
-  try {
-    await loadPDFJS();
-    const arrayBuffer = await file.arrayBuffer();
-    const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
-    let fullText = '';
-    
-    for (let i = 1; i <= pdf.numPages; i++) {
-      const page = await pdf.getPage(i);
-      const textContent = await page.getTextContent();
-      fullText += textContent.items.map(item => item.str).join(' ') + ' ';
-    }
-    
-    const extracted = extractFromPDFText(fullText);
-    
-    if (extracted.name) document.getElementById('fn').value = extracted.name;
-    const contacts = [extracted.phone, extracted.email].filter(Boolean).join(' / ');
-    if (contacts) document.getElementById('fc').value = contacts;
-    
-    if (extracted.phone || extracted.email) {
-      area.innerHTML = '✅ Данные загружены из резюме!';
-      area.style.borderColor = '#639922';
-      area.style.background = '#EAF3DE';
-      area.style.color = '#3B6D11';
-    } else {
-      area.innerHTML = '⚠️ Не удалось найти данные в резюме. Заполните вручную.';
-      area.style.borderColor = '#F9A825';
-      area.style.background = '#FFF8E1';
-      area.style.color = '#E65100';
-    }
-  } catch (err) {
-    console.error('PDF error:', err);
-    area.innerHTML = '⚠️ Не удалось прочитать PDF. Заполните вручную.';
-    area.style.borderColor = '#E24B4A';
-    area.style.color = '#A32D2D';
-  }
-}
-
-// ========== МОДАЛЬНЫЕ ОКНА ==========
-function closeModal() {
-  document.getElementById('mdl').style.display = 'none';
-}
-
-function modal(html) {
-  const m = document.getElementById('mdl');
-  m.style.display = 'flex';
-  m.className = 'modal-bg';
-  m.innerHTML = `<div class="modal">${html}</div>`;
-}
-
-function openAdd() {
-  const id = nextId();
-  const td = todayStr();
-  pendingPdfName = '';
-  
-  modal(`<h2>➕ Новый кандидат</h2>
-    <div class="upload-area" onclick="document.getElementById('pdfIn').click()">
-      📄 Загрузить PDF резюме с HH — данные заполнятся автоматически
-      <input type="file" id="pdfIn" accept=".pdf" style="display:none" onchange="parsePDF(event)">
-    </div>
-    <div class="section-title">Основные данные</div>
-    <div class="f2">
-      <div class="fr"><label>ID</label><input id="fi" value="${id}" readonly style="opacity:.5;background:#f8f8f8"></div>
-      <div class="fr"><label>Дата добавления</label><input type="date" id="fa" value="${td}"></div>
-    </div>
-    <div class="fr"><label>ФИО *</label><input id="fn" placeholder="Фамилия Имя Отчество"></div>
-    <div class="f2">
-      <div class="fr"><label>Вакансия</label><select id="fv">${sel(VACANCIES, 'Менеджер по продажам')}</select></div>
-      <div class="fr"><label>Источник</label><input id="fs" placeholder="hh.ru, рекомендация..."></div>
-    </div>
-    <div class="fr"><label>Контакты</label><input id="fc" placeholder="+7 999 000-00-00 / email@mail.ru"></div>
-    <div class="section-title">Воронка</div>
-    <div class="f2">
-      <div class="fr"><label>Этап</label><select id="fst">${sel(STAGES, 'Отклик')}</select></div>
-      <div class="fr"><label>Статус</label><select id="fsts" onchange="toggleRefuse(this,'addRefuse')">${sel(STATUSES, 'В работе')}</select></div>
-    </div>
-    <div class="fr" id="addRefuse" style="display:none"><label>Причина отказа</label><select id="frr"><option value="">— выберите —</option>${REFUSE_REASONS.filter(x => x).map(r => `<option>${r}</option>`).join('')}</select></div>
-    <div class="f2">
-      <div class="fr"><label>Следующий шаг</label><input id="fnx"></div>
-      <div class="fr"><label>Дата шага</label><input type="date" id="fnd"></div>
-    </div>
-    <div class="fr"><label>Время встречи</label><input type="time" id="fmt"></div>
-    <div class="fr"><label>Комментарий</label><textarea id="fco"></textarea></div>
-    <div class="fr"><label>Ссылка на резюме (Google Doc)</label><input id="frl" placeholder="https://..."></div>
-    <div class="fr"><label>Ссылка на HH профиль</label><input id="fhh" placeholder="https://hh.ru/resume/..."></div>
-    <div class="mfoot">
-      <button class="btn" onclick="closeModal()">Отмена</button>
-      <button class="btn btn-primary" onclick="saveNew()">Добавить</button>
-    </div>`);
-}
-
-function saveNew() {
-  const name = document.getElementById('fn').value.trim();
-  if (!name) {
-    alert('Введите ФИО');
-    return;
-  }
-  
-  const c = {
-    id: document.getElementById('fi').value,
-    added: document.getElementById('fa').value,
-    name: name,
-    vacancy: document.getElementById('fv').value,
-    contacts: document.getElementById('fc').value,
-    source: document.getElementById('fs').value,
-    stage: document.getElementById('fst').value,
-    status: document.getElementById('fsts').value,
-    next: document.getElementById('fnx').value,
-    nextDate: document.getElementById('fnd').value,
-    comment: document.getElementById('fco').value,
-    resumeLink: document.getElementById('frl').value,
-    meetTime: document.getElementById('fmt').value,
-    hhLink: document.getElementById('fhh').value,
-    pdfName: pendingPdfName,
-    refuseReason: document.getElementById('frr') ? document.getElementById('frr').value : ''
-  };
-  
-  if (INACTIVE.includes(c.status)) {
-    // оставляем причину отказа
-  } else {
-    c.refuseReason = '';
-  }
-  
-  D.candidates.push(c);
-  D.history.push({
-    date: c.added,
-    cid: c.id,
-    name: c.name,
-    vacancy: c.vacancy,
-    event: 'Добавлен кандидат',
-    desc: '',
-    result: '',
-    resp: 'Я'
-  });
-  saveData();
-  closeModal();
-  render();
-}
-
-function openEdit(id) {
-  const c = D.candidates.find(x => x.id === id);
-  if (!c) return;
-  const isRef = INACTIVE.includes(c.status);
-  
-  modal(`<h2>✏️ ${c.name}</h2>
-    <div class="section-title">Основные данные</div>
-    <div class="f2">
-      <div class="fr"><label>ID</label><input value="${c.id}" readonly style="opacity:.5;background:#f8f8f8"></div>
-      <div class="fr"><label>Дата добавления</label><input type="date" id="fa" value="${c.added || ''}"></div>
-    </div>
-    <div class="fr"><label>ФИО</label><input id="fn" value="${c.name}"></div>
-    <div class="f2">
-      <div class="fr"><label>Вакансия</label><select id="fv">${sel(VACANCIES, c.vacancy)}</select></div>
-      <div class="fr"><label>Источник</label><input id="fs" value="${c.source || ''}"></div>
-    </div>
-    <div class="fr"><label>Контакты</label><input id="fc" value="${c.contacts || ''}"></div>
-    <div class="section-title">Воронка</div>
-    <div class="f2">
-      <div class="fr"><label>Этап</label><select id="fst">${sel(STAGES, c.stage)}</select></div>
-      <div class="fr"><label>Статус</label><select id="fsts" onchange="toggleRefuse(this,'editRefuse')">${sel(STATUSES, c.status)}</select></div>
-    </div>
-    <div class="fr" id="editRefuse" style="${isRef ? '' : 'display:none'}"><label>Причина отказа</label><select id="frr"><option value="">— выберите —</option>${REFUSE_REASONS.filter(x => x).map(r => `<option${r === c.refuseReason ? ' selected' : ''}>${r}</option>`).join('')}</select></div>
-    <div class="f2">
-      <div class="fr"><label>Следующий шаг</label><input id="fnx" value="${c.next || ''}"></div>
-      <div class="fr"><label>Дата шага</label><input type="date" id="fnd" value="${c.nextDate || ''}"></div>
-    </div>
-    <div class="fr"><label>Время встречи</label><input type="time" id="fmt" value="${c.meetTime || ''}"></div>
-    <div class="fr"><label>Комментарий</label><textarea id="fco">${c.comment || ''}</textarea></div>
-    <div class="fr"><label>Ссылка на резюме (Google Doc)</label><input id="frl" value="${c.resumeLink || ''}"></div>
-    <div class="fr"><label>Ссылка на HH профиль</label><input id="fhh" value="${c.hhLink || ''}"></div>
-    <div class="mfoot" style="justify-content:space-between">
-      <button class="btn" style="color:#A32D2D;border-color:#F09595" onclick="saveEditThenHist('${id}')">📋 + Событие</button>
-      <div style="display:flex;gap:8px">
-        <button class="btn" onclick="closeModal()">Отмена</button>
-        <button class="btn btn-primary" onclick="saveEdit('${id}')">Сохранить</button>
-      </div>
-    </div>`);
-}
-
-function saveEdit(id) {
-  const c = D.candidates.find(x => x.id === id);
-  const oldStage = c.stage;
-  
-  c.added = document.getElementById('fa').value;
-  c.name = document.getElementById('fn').value.trim();
-  c.vacancy = document.getElementById('fv').value;
-  c.source = document.getElementById('fs').value;
-  c.contacts = document.getElementById('fc').value;
-  c.stage = document.getElementById('fst').value;
-  c.status = document.getElementById('fsts').value;
-  c.next = document.getElementById('fnx').value;
-  c.nextDate = document.getElementById('fnd').value;
-  c.comment = document.getElementById('fco').value;
-  c.resumeLink = document.getElementById('frl').value;
-  c.meetTime = document.getElementById('fmt').value;
-  c.hhLink = document.getElementById('fhh').value;
-  if (document.getElementById('frr')) c.refuseReason = document.getElementById('frr').value;
-  if (!INACTIVE.includes(c.status)) c.refuseReason = '';
-  
-  if (c.stage !== oldStage) {
-    D.history.push({
-      date: todayStr(),
-      cid: c.id,
-      name: c.name,
-      vacancy: c.vacancy,
-      event: c.stage,
-      desc: `Этап: ${oldStage} → ${c.stage}`,
-      result: '',
-      resp: 'Я'
-    });
-  }
-  
-  saveData();
-  closeModal();
-  render();
-}
-
-function saveEditThenHist(id) {
-  const c = D.candidates.find(x => x.id === id);
-  if (c && document.getElementById('fn')) {
-    c.added = document.getElementById('fa').value;
-    c.name = document.getElementById('fn').value.trim() || c.name;
-    c.vacancy = document.getElementById('fv').value;
-    c.source = document.getElementById('fs').value;
-    c.contacts = document.getElementById('fc').value;
-    c.stage = document.getElementById('fst').value;
-    c.status = document.getElementById('fsts').value;
-    c.next = document.getElementById('fnx').value;
-    c.nextDate = document.getElementById('fnd').value;
-    c.comment = document.getElementById('fco').value;
-    c.resumeLink = document.getElementById('frl').value;
-    c.meetTime = document.getElementById('fmt').value;
-    c.hhLink = document.getElementById('fhh').value;
-    if (document.getElementById('frr')) c.refuseReason = document.getElementById('frr').value;
-    if (!INACTIVE.includes(c.status)) c.refuseReason = '';
-    saveData();
-  }
-  openHist(id);
-}
-
-function openHist(id) {
-  const c = D.candidates.find(x => x.id === id);
-  modal(`<h2>📋 Событие — ${c.name}</h2>
-    <div class="fr"><label>Дата</label><input type="date" id="hd" value="${todayStr()}"></div>
-    <div class="fr"><label>Тип события</label><select id="he">${sel(EVENTS, 'Интервью HR')}</select></div>
-    <div class="fr"><label>Описание</label><textarea id="hds"></textarea></div>
-    <div class="fr"><label>Результат</label><input id="hr"></div>
-    <div class="mfoot">
-      <button class="btn" onclick="openEdit('${id}')">← Назад</button>
-      <button class="btn btn-primary" onclick="saveHist('${id}')">Добавить</button>
-    </div>`);
-}
-
-function saveHist(id) {
-  const c = D.candidates.find(x => x.id === id);
-  D.history.push({
-    date: document.getElementById('hd').value,
-    cid: c.id,
-    name: c.name,
-    vacancy: c.vacancy,
-    event: document.getElementById('he').value,
-    desc: document.getElementById('hds').value,
-    result: document.getElementById('hr').value,
-    resp: 'Я'
-  });
-  saveData();
-  closeModal();
-  render();
-}
-
-// ========== ЗАПУСК ==========
-loadData();
-render();
-
-document.getElementById('srch').addEventListener('input', renderTable);
-document.getElementById('fV').addEventListener('input', renderTable);
-document.getElementById('mdl').addEventListener('click', function(e) { if (e.target === this) closeModal(); });
-</script>
-</body>
-</html>
+  document.querySelectorAll('.tab').forEach(x => x
