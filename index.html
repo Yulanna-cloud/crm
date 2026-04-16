@@ -37,7 +37,6 @@ tr:hover td{background:#e8f0fc}
 .row-overdue td{background:#fff5f5!important}
 .row-today td{background:#fffbf0!important}
 .row-done td{opacity:0.6}
-.row-done td.keep-visible{opacity:1!important}
 .badge{display:inline-block;padding:3px 10px;border-radius:10px;font-size:12px;font-weight:700;white-space:nowrap}
 .bw{background:#EAF3DE;color:#3B6D11}
 .bo{background:#E6F1FB;color:#185FA5}
@@ -51,7 +50,7 @@ tr:hover td{background:#e8f0fc}
 .dr{background:#E24B4A}.dy{background:#EF9F27}.dg{background:#639922}
 .empty{text-align:center;padding:32px;color:#aaa}
 .modal-bg{position:fixed;inset:0;background:rgba(0,0,0,0.4);display:flex;align-items:center;justify-content:center;z-index:200}
-.modal{background:#fff;border-radius:12px;border:1px solid #ddd;padding:20px;width:560px;max-width:96vw;max-height:90vh;overflow-y:auto;box-shadow:0 8px 32px rgba(0,0,0,0.15)}
+.modal{background:#fff;border-radius:12px;border:1px solid #ddd;padding:20px;width:600px;max-width:96vw;max-height:90vh;overflow-y:auto;box-shadow:0 8px 32px rgba(0,0,0,0.15)}
 .modal h2{font-size:16px;font-weight:600;margin-bottom:16px;color:#1F3864}
 .fr{margin-bottom:12px}
 .fr label{display:block;font-size:11px;color:#888;margin-bottom:4px;font-weight:600;text-transform:uppercase}
@@ -76,9 +75,9 @@ tr:hover td{background:#e8f0fc}
     <label style="display:flex;align-items:center;gap:6px;font-size:13px;cursor:pointer;padding:0 10px;height:32px;border:1px solid #1976d2;border-radius:6px;background:#e3f2fd;color:#1565c0;font-weight:600;white-space:nowrap">
       <input type="checkbox" id="activeOnly" checked onchange="renderTable()" style="width:14px;height:14px;accent-color:#1565c0"> Только активные
     </label>
-    <input type="date" id="fDate" onchange="renderTable()" title="Фильтр по дате встречи" style="height:32px;font-size:13px;border:1px solid #ccc;border-radius:6px;padding:0 8px;background:#fff">
-    <button class="btn" onclick="setToday()" title="Показать только сегодня" style="background:#fff8e1;border-color:#f9a825;color:#f57f17;font-weight:600;white-space:nowrap">📅 Сегодня</button>
-    <button class="btn" onclick="clearDate()" title="Сбросить дату" style="font-size:12px">✕ Дата</button>
+    <input type="date" id="fDate" onchange="renderTable()" style="height:32px;font-size:13px;border:1px solid #ccc;border-radius:6px;padding:0 8px;background:#fff">
+    <button class="btn" onclick="setToday()" style="background:#fff8e1;border-color:#f9a825;color:#f57f17;font-weight:600;white-space:nowrap">📅 Сегодня</button>
+    <button class="btn" onclick="clearDate()" style="font-size:12px">✕ Дата</button>
     <select id="fV"><option value="">Все вакансии</option><option>Менеджер по продажам</option><option>РОП</option><option>Project Manager</option></select>
     <div style="position:relative;display:inline-block">
       <button class="btn" onclick="toggleDD('stageDD')" id="stageBtnLabel" style="min-width:120px;text-align:left">Все этапы ▾</button>
@@ -129,7 +128,6 @@ tr:hover td{background:#e8f0fc}
 <div id="mdl" style="display:none"></div>
 
 <script>
-// ========== КОНСТАНТЫ ==========
 const STAGES = ['Отклик', 'Интервью HR', 'Интервью с руководителем', 'Финал', 'Оффер', 'Обучение', 'Выход'];
 const STATUSES = ['В работе', 'Отказался сам', 'Отказалась сама', 'Отказ', 'Оффер', 'Вышел', 'Не вышла на собес', 'Собеседование с РОП'];
 const VACANCIES = ['Менеджер по продажам', 'РОП', 'Project Manager'];
@@ -137,31 +135,35 @@ const EVENTS = ['Добавлен кандидат', 'Интервью HR', 'И�
 const REFUSE_REASONS = ['', 'Слабая', 'Не пришла на интервью', 'Не подходит доход', 'Приняла другой оффер', 'Другое'];
 const INACTIVE = ['Отказ', 'Отказался сам', 'Отказалась сама', 'Вышел'];
 
-// ========== ДАННЫЕ ==========
 let D = { candidates: [], history: [] };
 
 function loadData() {
   const saved = localStorage.getItem('crm_candidates');
-  if (saved) {
-    D.candidates = JSON.parse(saved);
-  } else {
-    D.candidates = [];
-  }
-  
+  D.candidates = saved ? JSON.parse(saved) : [];
   const savedHist = localStorage.getItem('crm_history');
-  if (savedHist) {
-    D.history = JSON.parse(savedHist);
-  } else {
-    D.history = [];
-  }
+  D.history = savedHist ? JSON.parse(savedHist) : [];
 }
 
 function saveData() {
   localStorage.setItem('crm_candidates', JSON.stringify(D.candidates));
   localStorage.setItem('crm_history', JSON.stringify(D.history));
+  showSaved();
 }
 
-// ========== ВСПОМОГАТЕЛЬНЫЕ ФУНКЦИИ ==========
+function showSaved() {
+  let el = document.getElementById('savedMsg');
+  if (!el) {
+    el = document.createElement('div');
+    el.id = 'savedMsg';
+    el.style.cssText = 'position:fixed;bottom:16px;right:16px;background:#2e7d32;color:#fff;padding:8px 16px;border-radius:8px;font-size:13px;font-weight:600;z-index:999;opacity:0;transition:opacity 0.3s';
+    el.textContent = '✅ Сохранено';
+    document.body.appendChild(el);
+  }
+  el.style.opacity = '1';
+  clearTimeout(el._t);
+  el._t = setTimeout(() => el.style.opacity = '0', 2000);
+}
+
 function todayStr() {
   const d = new Date();
   return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
@@ -179,20 +181,6 @@ function isSameDay(dateStr) {
   if (!d) return false;
   const t = new Date();
   return d.getFullYear() === t.getFullYear() && d.getMonth() === t.getMonth() && d.getDate() === t.getDate();
-}
-
-function showSaved() {
-  let el = document.getElementById('savedMsg');
-  if (!el) {
-    el = document.createElement('div');
-    el.id = 'savedMsg';
-    el.style.cssText = 'position:fixed;bottom:16px;right:16px;background:#2e7d32;color:#fff;padding:8px 16px;border-radius:8px;font-size:13px;font-weight:600;z-index:999;opacity:0;transition:opacity 0.3s';
-    el.textContent = '✅ Сохранено';
-    document.body.appendChild(el);
-  }
-  el.style.opacity = '1';
-  clearTimeout(el._t);
-  el._t = setTimeout(() => el.style.opacity = '0', 2000);
 }
 
 function exportData() {
@@ -214,12 +202,8 @@ function importData(e) {
   reader.onload = function(ev) {
     try {
       const data = JSON.parse(ev.target.result);
-      if (data.candidates) {
-        D.candidates = data.candidates;
-      }
-      if (data.history) {
-        D.history = data.history;
-      }
+      if (data.candidates) D.candidates = data.candidates;
+      if (data.history) D.history = data.history;
       saveData();
       render();
       alert('✅ Данные загружены!');
@@ -279,7 +263,6 @@ function rclass(c) {
   return diff < 0 ? 'row-overdue' : diff === 0 ? 'row-today' : '';
 }
 
-// ========== ФИЛЬТРЫ И СОРТИРОВКА ==========
 let sortCol = 'id';
 let sortDir = 1;
 
@@ -355,7 +338,7 @@ function renderStats() {
   document.getElementById('stats').innerHTML = `
     <div class="stat"><div class="stat-n">${active}</div><div class="stat-l">В работе</div></div>
     <div class="stat"><div class="stat-n">${offers}</div><div class="stat-l">На стадии оффера</div></div>
-    <div class="stat" onclick="filterToday()" title="Нажмите чтобы показать встречи сегодня"><div class="stat-n">${tod}</div><div class="stat-l">Встреч сегодня 👆</div></div>
+    <div class="stat" onclick="filterToday()"><div class="stat-n">${tod}</div><div class="stat-l">Встреч сегодня 👆</div></div>
     <div class="stat"><div class="stat-n">${ref}</div><div class="stat-l">Отказов</div></div>`;
 }
 
@@ -369,9 +352,7 @@ function renderHeaders() {
     { key: '', label: 'Резюме' }, { key: '', label: 'PDF/HH' }, { key: '', label: '' }
   ];
   document.getElementById('thead-row').innerHTML = cols.map(c =>
-    `<th${c.key ? ` onclick="sortBy('${c.key}')"` : ''} style="padding:10px 12px;background:#1F3864;color:#fff;font-weight:700;border-bottom:2px solid #162a4a;white-space:nowrap${c.key ? ';cursor:pointer' : ''}">
-      ${c.label}${c.key ? arrow(c.key) : ''}
-    </th>`
+    `<th${c.key ? ` onclick="sortBy('${c.key}')"` : ''}>${c.label}${c.key ? arrow(c.key) : ''}</th>`
   ).join('');
 }
 
@@ -413,41 +394,31 @@ function renderTable() {
   }
 
   tb.innerHTML = rows.map(c => {
-    const lnk = c.resumeLink;
-    const resume = lnk ? `<a href="${lnk}" target="_blank" style="color:#185FA5;font-size:12px">Открыть</a>` : '—';
-    const hhOrPdf = c.hhLink ? `<a href="${c.hhLink}" target="_blank" style="color:#d6001c;font-size:12px">HH ↗</a>` :
-      c.pdfName ? `<span style="font-size:11px;color:#555" title="${c.pdfName}">📄 ${c.pdfName.length > 15 ? c.pdfName.slice(0, 13) + '…' : c.pdfName}</span>` : '—';
-    const isRefused = INACTIVE.includes(c.status);
-    const refReason = isRefused && c.refuseReason ? `<span style="background:#FCEBEB;color:#A32D2D;padding:2px 7px;border-radius:8px;font-size:11px;font-weight:700">${c.refuseReason}</span>` : '';
-    const commentStyle = isRefused ? 'color:#A32D2D;font-weight:600' : 'color:#555';
-    
-    // Разделяем телефон и email
     let phone = '', email = '';
     if (c.contacts) {
       const parts = c.contacts.split(' / ');
-      // Определяем что телефон, а что email
       for (let part of parts) {
-        if (part.includes('@')) {
-          email = part;
-        } else if (part.match(/[\d\+]/)) {
-          phone = part;
-        }
+        if (part.includes('@')) email = part;
+        else if (part.match(/[\d\+]/)) phone = part;
       }
     }
-    
+    const resume = c.resumeLink ? `<a href="${c.resumeLink}" target="_blank">Открыть</a>` : '—';
+    const hhOrPdf = c.hhLink ? `<a href="${c.hhLink}" target="_blank">HH ↗</a>` : (c.pdfName ? `📄 ${c.pdfName.length > 15 ? c.pdfName.slice(0,13)+'…' : c.pdfName}` : '—');
+    const isRefused = INACTIVE.includes(c.status);
+    const refReason = isRefused && c.refuseReason ? `<span class="badge br">${c.refuseReason}</span>` : '';
     return `<tr class="${rclass(c)}">
-      <td style="color:#999;font-size:12px">${c.id}</td>
-      <td style="font-weight:700;white-space:nowrap">${c.name}</td>
-      <td style="font-size:12px">${c.vacancy}</td>
-      <td style="font-size:12px">${c.stage}</td>
+      <td>${c.id}</td>
+      <td><b>${c.name}</b></td>
+      <td>${c.vacancy}</td>
+      <td>${c.stage}</td>
       <td>${sbadge(c.status)}</td>
-      <td style="max-width:160px;font-size:12px">${c.next || '—'}</td>
-      <td style="white-space:nowrap;font-size:12px">${dlabel(c.nextDate)}</td>
-      <td style="font-size:13px;font-weight:700;color:#1F3864;white-space:nowrap">${c.meetTime || ''}</td>
-      <td style="font-size:12px;white-space:nowrap">${phone || '—'}</td>
-      <td style="font-size:12px">${email || '—'}</td>
-      <td class="keep-visible">${refReason}</td>
-      <td class="keep-visible" style="max-width:150px;font-size:12px;${commentStyle}">${c.comment || ''}</td>
+      <td>${c.next || '—'}</td>
+      <td>${dlabel(c.nextDate)}</td>
+      <td>${c.meetTime || ''}</td>
+      <td>${phone || '—'}</td>
+      <td>${email || '—'}</td>
+      <td>${refReason}</td>
+      <td style="max-width:150px">${c.comment || ''}</td>
       <td>${resume}</td>
       <td>${hhOrPdf}</td>
       <td><button class="btn btn-sm" onclick="openEdit('${c.id}')">✏️</button></td>
@@ -463,10 +434,10 @@ function renderHistory() {
     return;
   }
   hb.innerHTML = items.map(h => `<div class="hist-item">
-    <div style="color:#999">${h.date ? new Date(h.date + 'T12:00:00').toLocaleDateString('ru-RU', { day: '2-digit', month: '2-digit', year: '2-digit' }) : ''}</div>
-    <div><div style="font-weight:600">${h.name || ''}</div><div style="color:#aaa;font-size:11px">${h.cid || ''}</div></div>
-    <div><div style="color:#888;font-size:11px;font-weight:600">${h.event || ''}</div><div style="margin-top:2px">${h.desc || ''}</div>${h.result ? `<div style="color:#aaa;font-size:11px">${h.result}</div>` : ''}</div>
-    <div style="color:#aaa;font-size:11px">${h.resp || ''}</div>
+    <div>${h.date ? new Date(h.date+'T12:00:00').toLocaleDateString('ru-RU') : ''}</div>
+    <div><b>${h.name || ''}</b><br><small>${h.cid || ''}</small></div>
+    <div><b>${h.event || ''}</b><br>${h.desc || ''}${h.result ? `<br><small>${h.result}</small>` : ''}</div>
+    <div>${h.resp || ''}</div>
   </div>`).join('');
 }
 
@@ -477,4 +448,319 @@ function render() {
 }
 
 function switchTab(t, el) {
-  document.querySelectorAll('.tab').forEach(x => x
+  document.querySelectorAll('.tab').forEach(x => x.classList.remove('active'));
+  el.classList.add('active');
+  document.getElementById('tc').style.display = t === 'c' ? 'block' : 'none';
+  document.getElementById('th').style.display = t === 'h' ? 'block' : 'none';
+}
+
+document.getElementById('srch').addEventListener('input', renderTable);
+document.getElementById('fV').addEventListener('input', renderTable);
+
+function closeModal() {
+  document.getElementById('mdl').style.display = 'none';
+}
+
+function modal(html) {
+  const m = document.getElementById('mdl');
+  m.style.display = 'flex';
+  m.className = 'modal-bg';
+  m.innerHTML = `<div class="modal">${html}</div>`;
+}
+
+document.getElementById('mdl').addEventListener('click', function(e) { if (e.target === this) closeModal(); });
+
+// ========== PDF ПАРСИНГ ==========
+let pendingPdfName = '';
+
+function loadPDFJS() {
+  return new Promise((resolve, reject) => {
+    if (typeof pdfjsLib !== 'undefined') { resolve(); return; }
+    const script = document.createElement('script');
+    script.src = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.min.js';
+    script.onload = () => {
+      pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.worker.min.js';
+      resolve();
+    };
+    script.onerror = reject;
+    document.head.appendChild(script);
+  });
+}
+
+function extractFromPDFText(text) {
+  const result = { name: '', phone: '', email: '' };
+  
+  const namePattern = /([А-Я][а-я]+)\s+([А-Я][а-я]+)\s+([А-Я][а-я]+)/;
+  const nameMatch = text.substring(0, 500).match(namePattern);
+  if (nameMatch) result.name = nameMatch[0];
+  
+  const phonePatterns = [
+    /\+7\s?\(?\d{3}\)?\s?\d{3}[-\s]?\d{2}[-\s]?\d{2}/,
+    /8\s?\(?\d{3}\)?\s?\d{3}[-\s]?\d{2}[-\s]?\d{2}/,
+    /\+7\d{10}/,
+    /8\d{10}/
+  ];
+  for (const pattern of phonePatterns) {
+    const match = text.match(pattern);
+    if (match) {
+      let phone = match[0].replace(/[\s\-\(\)]/g, '');
+      if (phone.startsWith('8')) phone = '+7' + phone.substring(1);
+      else if (!phone.startsWith('+')) phone = '+' + phone;
+      result.phone = phone;
+      break;
+    }
+  }
+  
+  const emailPattern = /[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/;
+  const emailMatch = text.match(emailPattern);
+  if (emailMatch) result.email = emailMatch[0].toLowerCase();
+  
+  return result;
+}
+
+async function parsePDF(e) {
+  const file = e.target.files[0];
+  if (!file) return;
+  
+  pendingPdfName = file.name;
+  const area = document.querySelector('.upload-area');
+  area.innerHTML = '⏳ Читаю резюме...';
+  
+  try {
+    await loadPDFJS();
+    const arrayBuffer = await file.arrayBuffer();
+    const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+    let fullText = '';
+    
+    for (let i = 1; i <= pdf.numPages; i++) {
+      const page = await pdf.getPage(i);
+      const textContent = await page.getTextContent();
+      fullText += textContent.items.map(item => item.str).join(' ') + ' ';
+    }
+    
+    const extracted = extractFromPDFText(fullText);
+    
+    if (extracted.name) document.getElementById('fn').value = extracted.name;
+    if (extracted.phone) document.getElementById('fphone').value = extracted.phone;
+    if (extracted.email) document.getElementById('femail').value = extracted.email;
+    
+    if (extracted.phone || extracted.email) {
+      area.innerHTML = '✅ Телефон и Email загружены из резюме!';
+      area.style.borderColor = '#639922';
+      area.style.background = '#EAF3DE';
+      area.style.color = '#3B6D11';
+    } else {
+      area.innerHTML = '⚠️ Не удалось найти телефон или email. Заполните вручную.';
+    }
+  } catch (err) {
+    area.innerHTML = '⚠️ Не удалось прочитать PDF. Заполните вручную.';
+  }
+}
+
+function openAdd() {
+  const id = nextId();
+  pendingPdfName = '';
+  
+  modal(`<h2>➕ Новый кандидат</h2>
+    <div class="upload-area" onclick="document.getElementById('pdfIn').click()">
+      📄 Загрузить PDF резюме — телефон и email заполнятся автоматически
+      <input type="file" id="pdfIn" accept=".pdf" style="display:none" onchange="parsePDF(event)">
+    </div>
+    <div class="section-title">Основные данные</div>
+    <div class="f2">
+      <div class="fr"><label>ID</label><input id="fi" value="${id}" readonly></div>
+      <div class="fr"><label>Дата добавления</label><input type="date" id="fa" value="${todayStr()}"></div>
+    </div>
+    <div class="fr"><label>ФИО *</label><input id="fn" placeholder="Фамилия Имя Отчество"></div>
+    <div class="f2">
+      <div class="fr"><label>Вакансия</label><select id="fv">${sel(VACANCIES, 'Менеджер по продажам')}</select></div>
+      <div class="fr"><label>Источник</label><input id="fs" placeholder="hh.ru"></div>
+    </div>
+    <div class="f2">
+      <div class="fr"><label>📞 Телефон</label><input id="fphone" placeholder="+7 999 000-00-00"></div>
+      <div class="fr"><label>✉️ Email</label><input id="femail" placeholder="email@mail.ru"></div>
+    </div>
+    <div class="section-title">Воронка</div>
+    <div class="f2">
+      <div class="fr"><label>Этап</label><select id="fst">${sel(STAGES, 'Отклик')}</select></div>
+      <div class="fr"><label>Статус</label><select id="fsts" onchange="toggleRefuse(this,'addRefuse')">${sel(STATUSES, 'В работе')}</select></div>
+    </div>
+    <div class="fr" id="addRefuse" style="display:none"><label>Причина отказа</label><select id="frr"><option value="">— выберите —</option>${REFUSE_REASONS.filter(x=>x).map(r=>`<option>${r}</option>`).join('')}</select></div>
+    <div class="f2">
+      <div class="fr"><label>Следующий шаг</label><input id="fnx"></div>
+      <div class="fr"><label>Дата шага</label><input type="date" id="fnd"></div>
+    </div>
+    <div class="fr"><label>Время встречи</label><input type="time" id="fmt"></div>
+    <div class="fr"><label>Комментарий</label><textarea id="fco"></textarea></div>
+    <div class="fr"><label>Ссылка на резюме (Google Doc)</label><input id="frl" placeholder="https://..."></div>
+    <div class="fr"><label>Ссылка на HH профиль</label><input id="fhh" placeholder="https://hh.ru/resume/..."></div>
+    <div class="mfoot">
+      <button class="btn" onclick="closeModal()">Отмена</button>
+      <button class="btn btn-primary" onclick="saveNew()">Добавить</button>
+    </div>`);
+}
+
+function saveNew() {
+  const name = document.getElementById('fn').value.trim();
+  if (!name) { alert('Введите ФИО'); return; }
+  
+  const phone = document.getElementById('fphone').value.trim();
+  const email = document.getElementById('femail').value.trim();
+  let contacts = '';
+  if (phone && email) contacts = phone + ' / ' + email;
+  else if (phone) contacts = phone;
+  else if (email) contacts = email;
+  
+  D.candidates.push({
+    id: document.getElementById('fi').value,
+    added: document.getElementById('fa').value,
+    name: name,
+    vacancy: document.getElementById('fv').value,
+    contacts: contacts,
+    source: document.getElementById('fs').value,
+    stage: document.getElementById('fst').value,
+    status: document.getElementById('fsts').value,
+    next: document.getElementById('fnx').value,
+    nextDate: document.getElementById('fnd').value,
+    comment: document.getElementById('fco').value,
+    resumeLink: document.getElementById('frl').value,
+    meetTime: document.getElementById('fmt').value,
+    hhLink: document.getElementById('fhh').value,
+    pdfName: pendingPdfName,
+    refuseReason: document.getElementById('frr') ? document.getElementById('frr').value : ''
+  });
+  D.history.push({ date: todayStr(), cid: D.candidates[D.candidates.length-1].id, name: name, vacancy: document.getElementById('fv').value, event: 'Добавлен кандидат', desc: '', result: '', resp: 'Я' });
+  saveData();
+  closeModal();
+  render();
+}
+
+function openEdit(id) {
+  const c = D.candidates.find(x => x.id === id);
+  if (!c) return;
+  
+  let phone = '', email = '';
+  if (c.contacts) {
+    const parts = c.contacts.split(' / ');
+    for (let part of parts) {
+      if (part.includes('@')) email = part;
+      else if (part.match(/[\d\+]/)) phone = part;
+    }
+  }
+  
+  modal(`<h2>✏️ ${c.name}</h2>
+    <div class="f2">
+      <div class="fr"><label>ID</label><input value="${c.id}" readonly></div>
+      <div class="fr"><label>Дата добавления</label><input type="date" id="fa" value="${c.added || ''}"></div>
+    </div>
+    <div class="fr"><label>ФИО</label><input id="fn" value="${c.name}"></div>
+    <div class="f2">
+      <div class="fr"><label>Вакансия</label><select id="fv">${sel(VACANCIES, c.vacancy)}</select></div>
+      <div class="fr"><label>Источник</label><input id="fs" value="${c.source || ''}"></div>
+    </div>
+    <div class="f2">
+      <div class="fr"><label>📞 Телефон</label><input id="fphone" value="${phone}"></div>
+      <div class="fr"><label>✉️ Email</label><input id="femail" value="${email}"></div>
+    </div>
+    <div class="f2">
+      <div class="fr"><label>Этап</label><select id="fst">${sel(STAGES, c.stage)}</select></div>
+      <div class="fr"><label>Статус</label><select id="fsts" onchange="toggleRefuse(this,'editRefuse')">${sel(STATUSES, c.status)}</select></div>
+    </div>
+    <div class="fr" id="editRefuse" style="${INACTIVE.includes(c.status) ? '' : 'display:none'}"><label>Причина отказа</label><select id="frr"><option value="">— выберите —</option>${REFUSE_REASONS.filter(x=>x).map(r=>`<option${r===c.refuseReason?' selected':''}>${r}</option>`).join('')}</select></div>
+    <div class="f2">
+      <div class="fr"><label>Следующий шаг</label><input id="fnx" value="${c.next || ''}"></div>
+      <div class="fr"><label>Дата шага</label><input type="date" id="fnd" value="${c.nextDate || ''}"></div>
+    </div>
+    <div class="fr"><label>Время встречи</label><input type="time" id="fmt" value="${c.meetTime || ''}"></div>
+    <div class="fr"><label>Комментарий</label><textarea id="fco">${c.comment || ''}</textarea></div>
+    <div class="fr"><label>Ссылка на резюме</label><input id="frl" value="${c.resumeLink || ''}"></div>
+    <div class="fr"><label>Ссылка на HH</label><input id="fhh" value="${c.hhLink || ''}"></div>
+    <div class="mfoot" style="justify-content:space-between">
+      <button class="btn" style="color:#A32D2D" onclick="saveEditThenHist('${id}')">📋 + Событие</button>
+      <div><button class="btn" onclick="closeModal()">Отмена</button><button class="btn btn-primary" onclick="saveEdit('${id}')">Сохранить</button></div>
+    </div>`);
+}
+
+function saveEdit(id) {
+  const c = D.candidates.find(x => x.id === id);
+  const phone = document.getElementById('fphone').value.trim();
+  const email = document.getElementById('femail').value.trim();
+  let contacts = '';
+  if (phone && email) contacts = phone + ' / ' + email;
+  else if (phone) contacts = phone;
+  else if (email) contacts = email;
+  
+  c.added = document.getElementById('fa').value;
+  c.name = document.getElementById('fn').value.trim();
+  c.vacancy = document.getElementById('fv').value;
+  c.source = document.getElementById('fs').value;
+  c.contacts = contacts;
+  c.stage = document.getElementById('fst').value;
+  c.status = document.getElementById('fsts').value;
+  c.next = document.getElementById('fnx').value;
+  c.nextDate = document.getElementById('fnd').value;
+  c.comment = document.getElementById('fco').value;
+  c.resumeLink = document.getElementById('frl').value;
+  c.meetTime = document.getElementById('fmt').value;
+  c.hhLink = document.getElementById('fhh').value;
+  if (document.getElementById('frr')) c.refuseReason = document.getElementById('frr').value;
+  if (!INACTIVE.includes(c.status)) c.refuseReason = '';
+  
+  saveData();
+  closeModal();
+  render();
+}
+
+function saveEditThenHist(id) {
+  const c = D.candidates.find(x => x.id === id);
+  if (c && document.getElementById('fn')) {
+    const phone = document.getElementById('fphone').value.trim();
+    const email = document.getElementById('femail').value.trim();
+    let contacts = '';
+    if (phone && email) contacts = phone + ' / ' + email;
+    else if (phone) contacts = phone;
+    else if (email) contacts = email;
+    c.contacts = contacts;
+    c.stage = document.getElementById('fst').value;
+    c.status = document.getElementById('fsts').value;
+    if (document.getElementById('frr')) c.refuseReason = document.getElementById('frr').value;
+    saveData();
+  }
+  openHist(id);
+}
+
+function openHist(id) {
+  const c = D.candidates.find(x => x.id === id);
+  modal(`<h2>📋 Событие — ${c.name}</h2>
+    <div class="fr"><label>Дата</label><input type="date" id="hd" value="${todayStr()}"></div>
+    <div class="fr"><label>Тип события</label><select id="he">${sel(EVENTS, 'Интервью HR')}</select></div>
+    <div class="fr"><label>Описание</label><textarea id="hds"></textarea></div>
+    <div class="fr"><label>Результат</label><input id="hr"></div>
+    <div class="mfoot">
+      <button class="btn" onclick="openEdit('${id}')">← Назад</button>
+      <button class="btn btn-primary" onclick="saveHist('${id}')">Добавить</button>
+    </div>`);
+}
+
+function saveHist(id) {
+  const c = D.candidates.find(x => x.id === id);
+  D.history.push({
+    date: document.getElementById('hd').value,
+    cid: c.id,
+    name: c.name,
+    vacancy: c.vacancy,
+    event: document.getElementById('he').value,
+    desc: document.getElementById('hds').value,
+    result: document.getElementById('hr').value,
+    resp: 'Я'
+  });
+  saveData();
+  closeModal();
+  render();
+}
+
+loadData();
+render();
+</script>
+</body>
+</html>
