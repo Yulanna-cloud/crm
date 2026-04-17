@@ -45,6 +45,7 @@ tr:hover td{background:#e8f0fc}
 .brs{background:#FBEAF0;color:#993556}
 .bnv{background:#FFF3E0;color:#E65100}
 .brop{background:#EDE7F6;color:#4527A0}
+.bpurple{background:#E8E0F5;color:#5E35B1}
 .bdef{background:#f0f0f0;color:#666}
 .dot{width:8px;height:8px;border-radius:50%;display:inline-block;margin-right:5px;vertical-align:middle}
 .dr{background:#E24B4A}.dy{background:#EF9F27}.dg{background:#639922}
@@ -94,8 +95,9 @@ tr:hover td{background:#e8f0fc}
     </div>
     <div style="position:relative;display:inline-block">
       <button class="btn" onclick="toggleDD('statusDD')" id="statusBtnLabel" style="min-width:120px;text-align:left">Все статусы ▾</button>
-      <div id="statusDD" style="display:none;position:absolute;top:34px;left:0;background:#fff;border:1px solid #ccc;border-radius:8px;box-shadow:0 4px 16px rgba(0,0,0,0.12);z-index:100;min-width:220px;padding:8px 0">
+      <div id="statusDD" style="display:none;position:absolute;top:34px;left:0;background:#fff;border:1px solid #ccc;border-radius:8px;box-shadow:0 4px 16px rgba(0,0,0,0.12);z-index:100;min-width:240px;padding:8px 0">
         <label style="display:flex;align-items:center;gap:8px;padding:6px 14px;cursor:pointer;font-size:13px"><input type="checkbox" value="В работе" onchange="applyStatusFilter()"> В работе</label>
+        <label style="display:flex;align-items:center;gap:8px;padding:6px 14px;cursor:pointer;font-size:13px"><input type="checkbox" value="Перенос собеседования" onchange="applyStatusFilter()"> Перенос собеседования</label>
         <label style="display:flex;align-items:center;gap:8px;padding:6px 14px;cursor:pointer;font-size:13px"><input type="checkbox" value="Отказался сам" onchange="applyStatusFilter()"> Отказался сам</label>
         <label style="display:flex;align-items:center;gap:8px;padding:6px 14px;cursor:pointer;font-size:13px"><input type="checkbox" value="Отказалась сама" onchange="applyStatusFilter()"> Отказалась сама</label>
         <label style="display:flex;align-items:center;gap:8px;padding:6px 14px;cursor:pointer;font-size:13px"><input type="checkbox" value="Отказ" onchange="applyStatusFilter()"> Отказ</label>
@@ -128,12 +130,14 @@ tr:hover td{background:#e8f0fc}
 <div id="mdl" style="display:none"></div>
 
 <script>
+// ========== КОНСТАНТЫ (ДОБАВЛЕН СТАТУС "Перенос собеседования") ==========
 const STAGES = ['Отклик', 'Интервью HR', 'Интервью с руководителем', 'Финал', 'Оффер', 'Обучение', 'Выход'];
-const STATUSES = ['В работе', 'Отказался сам', 'Отказалась сама', 'Отказ', 'Оффер', 'Вышел', 'Не вышла на собес', 'Собеседование с РОП'];
+const STATUSES = ['В работе', 'Перенос собеседования', 'Отказался сам', 'Отказалась сама', 'Отказ', 'Оффер', 'Вышел', 'Не вышла на собес', 'Собеседование с РОП'];
 const VACANCIES = ['Менеджер по продажам', 'РОП', 'Project Manager'];
 const EVENTS = ['Добавлен кандидат', 'Интервью HR', 'Интервью с руководителем', 'Тестовое задание', 'Оффер отправлен', 'Оффер принят', 'Отказался сам', 'Отказ компании', 'Выход на работу'];
 const REFUSE_REASONS = ['', 'Слабая', 'Не пришла на интервью', 'Не подходит доход', 'Приняла другой оффер', 'Другое'];
-const INACTIVE = ['Отказ', 'Отказался сам', 'Отказалась сама', 'Вышел'];
+// В INACTIVE добавили "Не вышла на собес" (теперь она не показывается в активных)
+const INACTIVE = ['Отказ', 'Отказался сам', 'Отказалась сама', 'Вышел', 'Не вышла на собес'];
 
 let D = { candidates: [], history: [] };
 
@@ -232,10 +236,18 @@ function toggleRefuse(s, divId) {
   }
 }
 
+// Добавили цвет для статуса "Перенос собеседования" (фиолетовый)
 function sbadge(s) {
   const m = {
-    'В работе': 'bw', 'Оффер': 'bo', 'Вышел': 'bout', 'Отказ': 'br',
-    'Отказался сам': 'brs', 'Отказалась сама': 'brs', 'Не вышла на собес': 'bnv', 'Собеседование с РОП': 'brop'
+    'В работе': 'bw', 
+    'Перенос собеседования': 'bpurple',
+    'Оффер': 'bo', 
+    'Вышел': 'bout', 
+    'Отказ': 'br',
+    'Отказался сам': 'brs', 
+    'Отказалась сама': 'brs', 
+    'Не вышла на собес': 'bnv', 
+    'Собеседование с РОП': 'brop'
   };
   return `<span class="badge ${m[s] || 'bdef'}">${s}</span>`;
 }
@@ -348,7 +360,7 @@ function renderHeaders() {
     { key: 'name', label: 'ФИО', width: '180px' },
     { key: 'vacancy', label: 'Вакансия', width: '150px' },
     { key: 'stage', label: 'Этап', width: '130px' },
-    { key: 'status', label: 'Статус', width: '110px' },
+    { key: 'status', label: 'Статус', width: '130px' },
     { key: '', label: 'Следующий шаг', width: '160px' },
     { key: 'date', label: 'Дата', width: '90px' },
     { key: '', label: 'Время', width: '70px' },
@@ -433,7 +445,7 @@ function renderTable() {
       <td>${resume}</td>
       <td>${hhOrPdf}</td>
       <td><button class="btn btn-sm" onclick="openEdit('${c.id}')">✏️</button></td>
-     </tr>`;
+    </tr>`;
   }).join('');
 }
 
