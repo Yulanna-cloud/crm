@@ -47,7 +47,6 @@ tr:hover td{background:#e8f0fc}
 .brop{background:#EDE7F6;color:#4527A0}
 .bpurple{background:#E8E0F5;color:#5E35B1}
 .bdef{background:#f0f0f0;color:#666}
-/* Подсветка вакансий */
 .vac-daler{background:#E3F2FD;color:#0D47A1;font-weight:600;border-radius:12px;padding:3px 10px;display:inline-block}
 .vac-smetchik{background:#E8F5E9;color:#1B5E20;font-weight:600;border-radius:12px;padding:3px 10px;display:inline-block}
 .dot{width:8px;height:8px;border-radius:50%;display:inline-block;margin-right:5px;vertical-align:middle}
@@ -123,7 +122,7 @@ tr:hover td{background:#e8f0fc}
 </div>
 <div id="tc">
   <div class="tbl-wrap">
-    <tr><thead><tr id="thead-row"></tr></thead><tbody id="tb"></tbody></table>
+    <table><thead><tr id="thead-row"></tr></thead><tbody id="tb"></tbody></table>
   </div>
 </div>
 <div id="th" style="display:none">
@@ -133,10 +132,8 @@ tr:hover td{background:#e8f0fc}
 <div id="mdl" style="display:none"></div>
 
 <script>
-// ========== КОНСТАНТЫ ==========
 const STAGES = ['Отклик', 'Интервью HR', 'Интервью с руководителем', 'Финал', 'Оффер', 'Обучение', 'Выход'];
 const STATUSES = ['В работе', 'Перенос собеседования', 'Отказался сам', 'Отказалась сама', 'Отказ', 'Оффер', 'Вышел', 'Не вышла на собес', 'Собеседование с РОП'];
-// РАСШИРЕННЫЙ СПИСОК ВАКАНСИЙ
 const VACANCIES = ['Менеджер по продажам', 'РОП (Далер)', 'инженер-сметчик', 'РОП', 'Project Manager'];
 const EVENTS = ['Добавлен кандидат', 'Интервью HR', 'Интервью с руководителем', 'Тестовое задание', 'Оффер отправлен', 'Оффер принят', 'Отказался сам', 'Отказ компании', 'Выход на работу'];
 const REFUSE_REASONS = ['', 'Слабая', 'Не пришла на интервью', 'Не подходит доход', 'Приняла другой оффер', 'Другое'];
@@ -146,9 +143,21 @@ let D = { candidates: [], history: [] };
 
 function loadData() {
   const saved = localStorage.getItem('crm_candidates');
-  D.candidates = saved ? JSON.parse(saved) : [];
+  if (saved) {
+    try {
+      D.candidates = JSON.parse(saved);
+    } catch(e) { D.candidates = []; }
+  } else {
+    D.candidates = [];
+  }
   const savedHist = localStorage.getItem('crm_history');
-  D.history = savedHist ? JSON.parse(savedHist) : [];
+  if (savedHist) {
+    try {
+      D.history = JSON.parse(savedHist);
+    } catch(e) { D.history = []; }
+  } else {
+    D.history = [];
+  }
 }
 
 function saveData() {
@@ -254,7 +263,6 @@ function sbadge(s) {
   return `<span class="badge ${m[s] || 'bdef'}">${s}</span>`;
 }
 
-// Функция для подсветки вакансии
 function vacancyColorClass(vacancy) {
   if (vacancy === 'РОП (Далер)') return 'vac-daler';
   if (vacancy === 'инженер-сметчик') return 'vac-smetchik';
@@ -524,11 +532,9 @@ function loadPDFJS() {
 
 function extractFromPDFText(text) {
   const result = { name: '', phone: '' };
-  
   const namePattern = /([А-Я][а-я]+)\s+([А-Я][а-я]+)\s+([А-Я][а-я]+)/;
   const nameMatch = text.substring(0, 500).match(namePattern);
   if (nameMatch) result.name = nameMatch[0];
-  
   const phonePatterns = [
     /(\+7|8)[\s\-]?\(?(\d{3})\)?[\s\-]?(\d{3})[\s\-]?(\d{2})[\s\-]?(\d{2})/,
     /(\+7|8)\s?\(?\d{3}\)?\s?\d{3}[-\s]?\d{2}[-\s]?\d{2}/,
@@ -550,28 +556,22 @@ function extractFromPDFText(text) {
 async function parsePDF(e) {
   const file = e.target.files[0];
   if (!file) return;
-  
   pendingPdfName = file.name;
   const area = document.querySelector('.upload-area');
   area.innerHTML = '⏳ Читаю резюме...';
-  
   try {
     await loadPDFJS();
     const arrayBuffer = await file.arrayBuffer();
     const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
     let fullText = '';
-    
     for (let i = 1; i <= pdf.numPages; i++) {
       const page = await pdf.getPage(i);
       const textContent = await page.getTextContent();
       fullText += textContent.items.map(item => item.str).join(' ') + ' ';
     }
-    
     const extracted = extractFromPDFText(fullText);
-    
     if (extracted.name) document.getElementById('fn').value = extracted.name;
     if (extracted.phone) document.getElementById('fphone').value = extracted.phone;
-    
     if (extracted.phone) {
       area.innerHTML = '✅ Телефон загружен из резюме!';
       area.style.borderColor = '#639922';
@@ -594,7 +594,6 @@ async function parsePDF(e) {
 function openAdd() {
   const id = nextId();
   pendingPdfName = '';
-  
   modal(`<h2>➕ Новый кандидат</h2>
     <div class="upload-area" onclick="document.getElementById('pdfIn').click()">
       📄 Загрузить PDF резюме — телефон заполнится автоматически
@@ -634,10 +633,8 @@ function openAdd() {
 function saveNew() {
   const name = document.getElementById('fn').value.trim();
   if (!name) { alert('Введите ФИО'); return; }
-  
   const phone = document.getElementById('fphone').value.trim();
   const contacts = phone || '';
-  
   D.candidates.push({
     id: document.getElementById('fi').value,
     added: document.getElementById('fa').value,
@@ -665,10 +662,8 @@ function saveNew() {
 function openEdit(id) {
   const c = D.candidates.find(x => x.id === id);
   if (!c) return;
-  
   let phone = '';
   if (c.contacts && c.contacts.match(/[\d\+]/)) phone = c.contacts;
-  
   modal(`<h2>✏️ ${c.name}</h2>
     <div class="f2">
       <div class="fr"><label>ID</label><input value="${c.id}" readonly></div>
@@ -702,7 +697,6 @@ function openEdit(id) {
 function saveEdit(id) {
   const c = D.candidates.find(x => x.id === id);
   const phone = document.getElementById('fphone').value.trim();
-  
   c.added = document.getElementById('fa').value;
   c.name = document.getElementById('fn').value.trim();
   c.vacancy = document.getElementById('fv').value;
@@ -718,7 +712,6 @@ function saveEdit(id) {
   c.hhLink = document.getElementById('fhh').value;
   if (document.getElementById('frr')) c.refuseReason = document.getElementById('frr').value;
   if (!INACTIVE.includes(c.status)) c.refuseReason = '';
-  
   saveData();
   closeModal();
   render();
