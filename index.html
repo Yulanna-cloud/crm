@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="ru">
 <head>
@@ -122,7 +123,7 @@ tr:hover td{background:#e8f0fc}
 </div>
 <div id="tc">
   <div class="tbl-wrap">
-    <table><thead><tr id="thead-row"></table></thead><tbody id="tb"></tbody></table>
+    <table><thead><tr id="thead-row"></tr></thead><tbody id="tb"></tbody></table>
   </div>
 </div>
 <div id="th" style="display:none">
@@ -142,10 +143,27 @@ const INACTIVE = ['Отказ', 'Отказался сам', 'Отказалас
 let D = { candidates: [], history: [] };
 
 function loadData() {
-  const saved = localStorage.getItem('crm_candidates');
-  D.candidates = saved ? JSON.parse(saved) : [];
-  const savedHist = localStorage.getItem('crm_history');
-  D.history = savedHist ? JSON.parse(savedHist) : [];
+  try {
+    const saved = localStorage.getItem('crm_candidates');
+    if (saved) {
+      const parsed = JSON.parse(saved);
+      if (Array.isArray(parsed)) D.candidates = parsed;
+      else D.candidates = [];
+    } else {
+      D.candidates = [];
+    }
+  } catch(e) { D.candidates = []; }
+  
+  try {
+    const savedHist = localStorage.getItem('crm_history');
+    if (savedHist) {
+      const parsed = JSON.parse(savedHist);
+      if (Array.isArray(parsed)) D.history = parsed;
+      else D.history = [];
+    } else {
+      D.history = [];
+    }
+  } catch(e) { D.history = []; }
 }
 
 function saveData() {
@@ -206,8 +224,8 @@ function importData(e) {
   reader.onload = function(ev) {
     try {
       const data = JSON.parse(ev.target.result);
-      if (data.candidates) D.candidates = data.candidates;
-      if (data.history) D.history = data.history;
+      if (data.candidates && Array.isArray(data.candidates)) D.candidates = data.candidates;
+      if (data.history && Array.isArray(data.history)) D.history = data.history;
       saveData();
       render();
       alert('✅ Данные загружены!');
@@ -366,21 +384,22 @@ function filterToday() {
 }
 
 function renderStats() {
+  const statsDiv = document.getElementById('stats');
+  if (!statsDiv) return;
   const active = D.candidates.filter(x => x.status === 'В работе').length;
   const offers = D.candidates.filter(x => x.status === 'В работе' && x.stage === 'Оффер').length;
   const tod = D.candidates.filter(x => !INACTIVE.includes(x.status) && isSameDay(x.nextDate)).length;
   const ref = D.candidates.filter(x => ['Отказ', 'Отказался сам', 'Отказалась сама'].includes(x.status)).length;
-  const statsDiv = document.getElementById('stats');
-  if (statsDiv) {
-    statsDiv.innerHTML = `
-      <div class="stat"><div class="stat-n">${active}</div><div class="stat-l">В работе</div></div>
-      <div class="stat"><div class="stat-n">${offers}</div><div class="stat-l">На стадии оффера</div></div>
-      <div class="stat" onclick="filterToday()"><div class="stat-n">${tod}</div><div class="stat-l">Встреч сегодня 👆</div></div>
-      <div class="stat"><div class="stat-n">${ref}</div><div class="stat-l">Отказов</div></div>`;
-  }
+  statsDiv.innerHTML = `
+    <div class="stat"><div class="stat-n">${active}</div><div class="stat-l">В работе</div></div>
+    <div class="stat"><div class="stat-n">${offers}</div><div class="stat-l">На стадии оффера</div></div>
+    <div class="stat" onclick="filterToday()"><div class="stat-n">${tod}</div><div class="stat-l">Встреч сегодня 👆</div></div>
+    <div class="stat"><div class="stat-n">${ref}</div><div class="stat-l">Отказов</div></div>`;
 }
 
 function renderHeaders() {
+  const theadRow = document.getElementById('thead-row');
+  if (!theadRow) return;
   const cols = [
     { key: 'id', label: 'ID', width: '60px' },
     { key: 'name', label: 'ФИО', width: '180px' },
@@ -397,19 +416,16 @@ function renderHeaders() {
     { key: '', label: 'PDF/HH', width: '70px' },
     { key: '', label: '', width: '50px' }
   ];
-  const theadRow = document.getElementById('thead-row');
-  if (theadRow) {
-    theadRow.innerHTML = cols.map(c =>
-      `<th${c.key ? ` onclick="sortBy('${c.key}')"` : ''} style="width:${c.width};padding:10px 12px;background:#1F3864;color:#fff;font-weight:700;border-bottom:2px solid #162a4a;white-space:nowrap${c.key ? ';cursor:pointer' : ''}">
-        ${c.label}${c.key ? arrow(c.key) : ''}
-      </th>`
-    ).join('');
-  } else {
-    console.error('thead-row not found');
-  }
+  theadRow.innerHTML = cols.map(c =>
+    `<th${c.key ? ` onclick="sortBy('${c.key}')"` : ''} style="width:${c.width};padding:10px 12px;background:#1F3864;color:#fff;font-weight:700;border-bottom:2px solid #162a4a;white-space:nowrap${c.key ? ';cursor:pointer' : ''}">
+      ${c.label}${c.key ? arrow(c.key) : ''}
+    </th>`
+  ).join('');
 }
 
 function renderTable() {
+  const tb = document.getElementById('tb');
+  if (!tb) return;
   renderHeaders();
   const q = document.getElementById('srch') ? document.getElementById('srch').value.toLowerCase() : '';
   const fv = document.getElementById('fV') ? document.getElementById('fV').value : '';
@@ -440,11 +456,6 @@ function renderTable() {
     return sortDir * av.localeCompare(bv, 'ru');
   });
 
-  const tb = document.getElementById('tb');
-  if (!tb) {
-    console.error('tbody not found');
-    return;
-  }
   if (!rows.length) {
     tb.innerHTML = `<tr><td colspan="14" class="empty">Нет кандидатов</td></tr>`;
     return;
@@ -518,10 +529,8 @@ function switchTab(t, el) {
   if (th) th.style.display = t === 'h' ? 'block' : 'none';
 }
 
-const srch = document.getElementById('srch');
-if (srch) srch.addEventListener('input', renderTable);
-const fV = document.getElementById('fV');
-if (fV) fV.addEventListener('input', renderTable);
+document.getElementById('srch')?.addEventListener('input', renderTable);
+document.getElementById('fV')?.addEventListener('input', renderTable);
 
 function closeModal() {
   const mdl = document.getElementById('mdl');
@@ -536,8 +545,7 @@ function modal(html) {
   m.innerHTML = `<div class="modal">${html}</div>`;
 }
 
-const mdlDiv = document.getElementById('mdl');
-if (mdlDiv) mdlDiv.addEventListener('click', function(e) { if (e.target === this) closeModal(); });
+document.getElementById('mdl')?.addEventListener('click', function(e) { if (e.target === this) closeModal(); });
 
 // ========== PDF ПАРСИНГ ==========
 let pendingPdfName = '';
@@ -561,6 +569,7 @@ function extractFromPDFText(text) {
   const namePattern = /([А-Я][а-я]+)\s+([А-Я][а-я]+)\s+([А-Я][а-я]+)/;
   const nameMatch = text.substring(0, 500).match(namePattern);
   if (nameMatch) result.name = nameMatch[0];
+  
   const phoneRegex = /(?:\+7|8|7)[\s\-\(\)]*(\d{3})[\s\-\(\)]*(\d{3})[\s\-\(\)]*(\d{2})[\s\-\(\)]*(\d{2})/;
   const match = text.match(phoneRegex);
   if (match) {
@@ -569,10 +578,7 @@ function extractFromPDFText(text) {
     const simpleDigits = text.match(/\d{10}/);
     if (simpleDigits) result.phone = '+7' + simpleDigits[0];
   }
-  console.log('=== PDF Debug ===');
-  console.log('Текст (первые 300 символов):', text.substring(0, 300));
-  console.log('Найденный телефон:', result.phone);
-  console.log('=================');
+  console.log('=== PDF Debug ===', 'Телефон:', result.phone);
   return result;
 }
 
@@ -593,10 +599,14 @@ async function parsePDF(e) {
       fullText += textContent.items.map(item => item.str).join(' ') + ' ';
     }
     const extracted = extractFromPDFText(fullText);
-    const fnField = document.getElementById('fn');
-    if (fnField && extracted.name) fnField.value = extracted.name;
-    const fphoneField = document.getElementById('fphone');
-    if (fphoneField && extracted.phone) fphoneField.value = extracted.phone;
+    if (extracted.name) {
+      const fn = document.getElementById('fn');
+      if (fn) fn.value = extracted.name;
+    }
+    if (extracted.phone) {
+      const fphone = document.getElementById('fphone');
+      if (fphone) fphone.value = extracted.phone;
+    }
     if (area) {
       if (extracted.phone) {
         area.innerHTML = '✅ Телефон загружен из резюме!';
@@ -660,29 +670,29 @@ function openAdd() {
 }
 
 function saveNew() {
-  const name = document.getElementById('fn').value.trim();
+  const name = document.getElementById('fn')?.value.trim();
   if (!name) { alert('Введите ФИО'); return; }
-  const phone = document.getElementById('fphone').value.trim();
-  const contacts = phone || '';
+  const phone = document.getElementById('fphone')?.value.trim() || '';
+  const contacts = phone;
   D.candidates.push({
-    id: document.getElementById('fi').value,
-    added: document.getElementById('fa').value,
+    id: document.getElementById('fi')?.value || nextId(),
+    added: document.getElementById('fa')?.value || todayStr(),
     name: name,
-    vacancy: document.getElementById('fv').value,
+    vacancy: document.getElementById('fv')?.value || 'Менеджер по продажам',
     contacts: contacts,
-    source: document.getElementById('fs').value,
-    stage: document.getElementById('fst').value,
-    status: document.getElementById('fsts').value,
-    next: document.getElementById('fnx').value,
-    nextDate: document.getElementById('fnd').value,
-    comment: document.getElementById('fco').value,
-    resumeLink: document.getElementById('frl').value,
-    meetTime: document.getElementById('fmt').value,
-    hhLink: document.getElementById('fhh').value,
+    source: document.getElementById('fs')?.value || '',
+    stage: document.getElementById('fst')?.value || 'Отклик',
+    status: document.getElementById('fsts')?.value || 'В работе',
+    next: document.getElementById('fnx')?.value || '',
+    nextDate: document.getElementById('fnd')?.value || '',
+    comment: document.getElementById('fco')?.value || '',
+    resumeLink: document.getElementById('frl')?.value || '',
+    meetTime: document.getElementById('fmt')?.value || '',
+    hhLink: document.getElementById('fhh')?.value || '',
     pdfName: pendingPdfName,
-    refuseReason: document.getElementById('frr') ? document.getElementById('frr').value : ''
+    refuseReason: document.getElementById('frr')?.value || ''
   });
-  D.history.push({ date: todayStr(), cid: D.candidates[D.candidates.length-1].id, name: name, vacancy: document.getElementById('fv').value, event: 'Добавлен кандидат', desc: '', result: '', resp: 'Я' });
+  D.history.push({ date: todayStr(), cid: D.candidates[D.candidates.length-1].id, name: name, vacancy: document.getElementById('fv')?.value || '', event: 'Добавлен кандидат', desc: '', result: '', resp: 'Я' });
   saveData();
   closeModal();
   render();
@@ -725,20 +735,21 @@ function openEdit(id) {
 
 function saveEdit(id) {
   const c = D.candidates.find(x => x.id === id);
-  const phone = document.getElementById('fphone').value.trim();
-  c.added = document.getElementById('fa').value;
-  c.name = document.getElementById('fn').value.trim();
-  c.vacancy = document.getElementById('fv').value;
-  c.source = document.getElementById('fs').value;
+  if (!c) return;
+  const phone = document.getElementById('fphone')?.value.trim() || '';
+  c.added = document.getElementById('fa')?.value || c.added;
+  c.name = document.getElementById('fn')?.value.trim() || c.name;
+  c.vacancy = document.getElementById('fv')?.value || c.vacancy;
+  c.source = document.getElementById('fs')?.value || '';
   c.contacts = phone;
-  c.stage = document.getElementById('fst').value;
-  c.status = document.getElementById('fsts').value;
-  c.next = document.getElementById('fnx').value;
-  c.nextDate = document.getElementById('fnd').value;
-  c.comment = document.getElementById('fco').value;
-  c.resumeLink = document.getElementById('frl').value;
-  c.meetTime = document.getElementById('fmt').value;
-  c.hhLink = document.getElementById('fhh').value;
+  c.stage = document.getElementById('fst')?.value || c.stage;
+  c.status = document.getElementById('fsts')?.value || c.status;
+  c.next = document.getElementById('fnx')?.value || '';
+  c.nextDate = document.getElementById('fnd')?.value || '';
+  c.comment = document.getElementById('fco')?.value || '';
+  c.resumeLink = document.getElementById('frl')?.value || '';
+  c.meetTime = document.getElementById('fmt')?.value || '';
+  c.hhLink = document.getElementById('fhh')?.value || '';
   if (document.getElementById('frr')) c.refuseReason = document.getElementById('frr').value;
   if (!INACTIVE.includes(c.status)) c.refuseReason = '';
   saveData();
@@ -749,9 +760,9 @@ function saveEdit(id) {
 function saveEditThenHist(id) {
   const c = D.candidates.find(x => x.id === id);
   if (c && document.getElementById('fn')) {
-    c.contacts = document.getElementById('fphone').value.trim();
-    c.stage = document.getElementById('fst').value;
-    c.status = document.getElementById('fsts').value;
+    c.contacts = document.getElementById('fphone')?.value.trim() || '';
+    c.stage = document.getElementById('fst')?.value || c.stage;
+    c.status = document.getElementById('fsts')?.value || c.status;
     if (document.getElementById('frr')) c.refuseReason = document.getElementById('frr').value;
     saveData();
   }
@@ -760,6 +771,7 @@ function saveEditThenHist(id) {
 
 function openHist(id) {
   const c = D.candidates.find(x => x.id === id);
+  if (!c) return;
   modal(`<h2>📋 Событие — ${c.name}</h2>
     <div class="fr"><label>Дата</label><input type="date" id="hd" value="${todayStr()}"></div>
     <div class="fr"><label>Тип события</label><select id="he">${sel(EVENTS, 'Интервью HR')}</select></div>
@@ -773,14 +785,15 @@ function openHist(id) {
 
 function saveHist(id) {
   const c = D.candidates.find(x => x.id === id);
+  if (!c) return;
   D.history.push({
-    date: document.getElementById('hd').value,
+    date: document.getElementById('hd')?.value || todayStr(),
     cid: c.id,
     name: c.name,
     vacancy: c.vacancy,
-    event: document.getElementById('he').value,
-    desc: document.getElementById('hds').value,
-    result: document.getElementById('hr').value,
+    event: document.getElementById('he')?.value || '',
+    desc: document.getElementById('hds')?.value || '',
+    result: document.getElementById('hr')?.value || '',
     resp: 'Я'
   });
   saveData();
