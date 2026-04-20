@@ -47,6 +47,9 @@ tr:hover td{background:#e8f0fc}
 .brop{background:#EDE7F6;color:#4527A0}
 .bpurple{background:#E8E0F5;color:#5E35B1}
 .bdef{background:#f0f0f0;color:#666}
+/* Подсветка вакансий */
+.vac-daler{background:#E3F2FD;color:#0D47A1;font-weight:600;border-radius:12px;padding:3px 10px;display:inline-block}
+.vac-smetchik{background:#E8F5E9;color:#1B5E20;font-weight:600;border-radius:12px;padding:3px 10px;display:inline-block}
 .dot{width:8px;height:8px;border-radius:50%;display:inline-block;margin-right:5px;vertical-align:middle}
 .dr{background:#E24B4A}.dy{background:#EF9F27}.dg{background:#639922}
 .empty{text-align:center;padding:32px;color:#aaa}
@@ -79,7 +82,7 @@ tr:hover td{background:#e8f0fc}
     <input type="date" id="fDate" onchange="renderTable()" style="height:32px;font-size:13px;border:1px solid #ccc;border-radius:6px;padding:0 8px;background:#fff">
     <button class="btn" onclick="setToday()" style="background:#fff8e1;border-color:#f9a825;color:#f57f17;font-weight:600;white-space:nowrap">📅 Сегодня</button>
     <button class="btn" onclick="clearDate()" style="font-size:12px">✕ Дата</button>
-    <select id="fV"><option value="">Все вакансии</option><option>Менеджер по продажам</option><option>РОП</option><option>Project Manager</option></select>
+    <select id="fV"><option value="">Все вакансии</option><option>Менеджер по продажам</option><option>РОП (Далер)</option><option>инженер-сметчик</option><option>РОП</option><option>Project Manager</option></select>
     <div style="position:relative;display:inline-block">
       <button class="btn" onclick="toggleDD('stageDD')" id="stageBtnLabel" style="min-width:120px;text-align:left">Все этапы ▾</button>
       <div id="stageDD" style="display:none;position:absolute;top:34px;left:0;background:#fff;border:1px solid #ccc;border-radius:8px;box-shadow:0 4px 16px rgba(0,0,0,0.12);z-index:100;min-width:230px;padding:8px 0">
@@ -120,7 +123,7 @@ tr:hover td{background:#e8f0fc}
 </div>
 <div id="tc">
   <div class="tbl-wrap">
-    <table><thead><tr id="thead-row"></tr></thead><tbody id="tb"></tbody></table>
+    <tr><thead><tr id="thead-row"></tr></thead><tbody id="tb"></tbody></table>
   </div>
 </div>
 <div id="th" style="display:none">
@@ -130,13 +133,13 @@ tr:hover td{background:#e8f0fc}
 <div id="mdl" style="display:none"></div>
 
 <script>
-// ========== КОНСТАНТЫ (ДОБАВЛЕН СТАТУС "Перенос собеседования") ==========
+// ========== КОНСТАНТЫ ==========
 const STAGES = ['Отклик', 'Интервью HR', 'Интервью с руководителем', 'Финал', 'Оффер', 'Обучение', 'Выход'];
 const STATUSES = ['В работе', 'Перенос собеседования', 'Отказался сам', 'Отказалась сама', 'Отказ', 'Оффер', 'Вышел', 'Не вышла на собес', 'Собеседование с РОП'];
-const VACANCIES = ['Менеджер по продажам', 'РОП', 'Project Manager'];
+// РАСШИРЕННЫЙ СПИСОК ВАКАНСИЙ
+const VACANCIES = ['Менеджер по продажам', 'РОП (Далер)', 'инженер-сметчик', 'РОП', 'Project Manager'];
 const EVENTS = ['Добавлен кандидат', 'Интервью HR', 'Интервью с руководителем', 'Тестовое задание', 'Оффер отправлен', 'Оффер принят', 'Отказался сам', 'Отказ компании', 'Выход на работу'];
 const REFUSE_REASONS = ['', 'Слабая', 'Не пришла на интервью', 'Не подходит доход', 'Приняла другой оффер', 'Другое'];
-// В INACTIVE добавили "Не вышла на собес" (теперь она не показывается в активных)
 const INACTIVE = ['Отказ', 'Отказался сам', 'Отказалась сама', 'Вышел', 'Не вышла на собес'];
 
 let D = { candidates: [], history: [] };
@@ -236,7 +239,6 @@ function toggleRefuse(s, divId) {
   }
 }
 
-// Добавили цвет для статуса "Перенос собеседования" (фиолетовый)
 function sbadge(s) {
   const m = {
     'В работе': 'bw', 
@@ -250,6 +252,13 @@ function sbadge(s) {
     'Собеседование с РОП': 'brop'
   };
   return `<span class="badge ${m[s] || 'bdef'}">${s}</span>`;
+}
+
+// Функция для подсветки вакансии
+function vacancyColorClass(vacancy) {
+  if (vacancy === 'РОП (Далер)') return 'vac-daler';
+  if (vacancy === 'инженер-сметчик') return 'vac-smetchik';
+  return '';
 }
 
 function dlabel(ds) {
@@ -358,7 +367,7 @@ function renderHeaders() {
   const cols = [
     { key: 'id', label: 'ID', width: '60px' },
     { key: 'name', label: 'ФИО', width: '180px' },
-    { key: 'vacancy', label: 'Вакансия', width: '150px' },
+    { key: 'vacancy', label: 'Вакансия', width: '170px' },
     { key: 'stage', label: 'Этап', width: '130px' },
     { key: 'status', label: 'Статус', width: '130px' },
     { key: '', label: 'Следующий шаг', width: '160px' },
@@ -430,10 +439,13 @@ function renderTable() {
     const hhOrPdf = c.hhLink ? `<a href="${c.hhLink}" target="_blank" style="color:#d6001c">HH ↗</a>` : (c.pdfName ? `📄 ${c.pdfName.length > 15 ? c.pdfName.slice(0,13)+'…' : c.pdfName}` : '—');
     const isRefused = INACTIVE.includes(c.status);
     const refReason = isRefused && c.refuseReason ? `<span class="badge br">${c.refuseReason}</span>` : '';
+    const vacClass = vacancyColorClass(c.vacancy);
+    const vacancyHtml = vacClass ? `<span class="${vacClass}">${c.vacancy}</span>` : c.vacancy;
+    
     return `<tr class="${rclass(c)}">
       <td>${c.id}</td>
       <td><b>${c.name}</b></td>
-      <td>${c.vacancy}</td>
+      <td>${vacancyHtml}</td>
       <td>${c.stage}</td>
       <td>${sbadge(c.status)}</td>
       <td>${c.next || '—'}</td>
@@ -513,12 +525,10 @@ function loadPDFJS() {
 function extractFromPDFText(text) {
   const result = { name: '', phone: '' };
   
-  // ФИО
   const namePattern = /([А-Я][а-я]+)\s+([А-Я][а-я]+)\s+([А-Я][а-я]+)/;
   const nameMatch = text.substring(0, 500).match(namePattern);
   if (nameMatch) result.name = nameMatch[0];
   
-  // Телефон — усиленный поиск
   const phonePatterns = [
     /(\+7|8)[\s\-]?\(?(\d{3})\)?[\s\-]?(\d{3})[\s\-]?(\d{2})[\s\-]?(\d{2})/,
     /(\+7|8)\s?\(?\d{3}\)?\s?\d{3}[-\s]?\d{2}[-\s]?\d{2}/,
