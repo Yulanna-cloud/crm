@@ -143,21 +143,9 @@ let D = { candidates: [], history: [] };
 
 function loadData() {
   const saved = localStorage.getItem('crm_candidates');
-  if (saved) {
-    try {
-      D.candidates = JSON.parse(saved);
-    } catch(e) { D.candidates = []; }
-  } else {
-    D.candidates = [];
-  }
+  D.candidates = saved ? JSON.parse(saved) : [];
   const savedHist = localStorage.getItem('crm_history');
-  if (savedHist) {
-    try {
-      D.history = JSON.parse(savedHist);
-    } catch(e) { D.history = []; }
-  } else {
-    D.history = [];
-  }
+  D.history = savedHist ? JSON.parse(savedHist) : [];
 }
 
 function saveData() {
@@ -310,48 +298,66 @@ function getChecked(ddId) {
 
 function applyStageFilter() {
   const checked = getChecked('stageDD');
-  document.getElementById('stageBtnLabel').textContent = checked.length ? checked.join(', ') + ' ▾' : 'Все этапы ▾';
+  const btn = document.getElementById('stageBtnLabel');
+  if (btn) btn.textContent = checked.length ? checked.join(', ') + ' ▾' : 'Все этапы ▾';
   renderTable();
 }
 
 function applyStatusFilter() {
   const checked = getChecked('statusDD');
-  document.getElementById('statusBtnLabel').textContent = checked.length ? checked.join(', ') + ' ▾' : 'Все статусы ▾';
+  const btn = document.getElementById('statusBtnLabel');
+  if (btn) btn.textContent = checked.length ? checked.join(', ') + ' ▾' : 'Все статусы ▾';
   renderTable();
 }
 
 function clearStageFilter() {
   document.querySelectorAll('#stageDD input').forEach(x => x.checked = false);
-  document.getElementById('stageBtnLabel').textContent = 'Все этапы ▾';
-  document.getElementById('stageDD').style.display = 'none';
+  const btn = document.getElementById('stageBtnLabel');
+  if (btn) btn.textContent = 'Все этапы ▾';
+  const dd = document.getElementById('stageDD');
+  if (dd) dd.style.display = 'none';
   renderTable();
 }
 
 function clearStatusFilter() {
   document.querySelectorAll('#statusDD input').forEach(x => x.checked = false);
-  document.getElementById('statusBtnLabel').textContent = 'Все статусы ▾';
-  document.getElementById('statusDD').style.display = 'none';
+  const btn = document.getElementById('statusBtnLabel');
+  if (btn) btn.textContent = 'Все статусы ▾';
+  const dd = document.getElementById('statusDD');
+  if (dd) dd.style.display = 'none';
   renderTable();
 }
 
 function toggleDD(id) {
   const dd = document.getElementById(id);
-  ['stageDD', 'statusDD'].filter(x => x !== id).forEach(x => document.getElementById(x).style.display = 'none');
+  if (!dd) return;
+  ['stageDD', 'statusDD'].filter(x => x !== id).forEach(x => {
+    const el = document.getElementById(x);
+    if (el) el.style.display = 'none';
+  });
   dd.style.display = dd.style.display === 'none' ? 'block' : 'none';
 }
 
 document.addEventListener('click', function(e) {
-  if (!e.target.closest('#stageDD') && !e.target.closest('[onclick*="stageDD"]')) document.getElementById('stageDD').style.display = 'none';
-  if (!e.target.closest('#statusDD') && !e.target.closest('[onclick*="statusDD"]')) document.getElementById('statusDD').style.display = 'none';
+  if (!e.target.closest('#stageDD') && !e.target.closest('[onclick*="stageDD"]')) {
+    const dd = document.getElementById('stageDD');
+    if (dd) dd.style.display = 'none';
+  }
+  if (!e.target.closest('#statusDD') && !e.target.closest('[onclick*="statusDD"]')) {
+    const dd = document.getElementById('statusDD');
+    if (dd) dd.style.display = 'none';
+  }
 });
 
 function setToday() {
-  document.getElementById('fDate').value = todayStr();
+  const fd = document.getElementById('fDate');
+  if (fd) fd.value = todayStr();
   renderTable();
 }
 
 function clearDate() {
-  document.getElementById('fDate').value = '';
+  const fd = document.getElementById('fDate');
+  if (fd) fd.value = '';
   renderTable();
 }
 
@@ -364,11 +370,14 @@ function renderStats() {
   const offers = D.candidates.filter(x => x.status === 'В работе' && x.stage === 'Оффер').length;
   const tod = D.candidates.filter(x => !INACTIVE.includes(x.status) && isSameDay(x.nextDate)).length;
   const ref = D.candidates.filter(x => ['Отказ', 'Отказался сам', 'Отказалась сама'].includes(x.status)).length;
-  document.getElementById('stats').innerHTML = `
-    <div class="stat"><div class="stat-n">${active}</div><div class="stat-l">В работе</div></div>
-    <div class="stat"><div class="stat-n">${offers}</div><div class="stat-l">На стадии оффера</div></div>
-    <div class="stat" onclick="filterToday()"><div class="stat-n">${tod}</div><div class="stat-l">Встреч сегодня 👆</div></div>
-    <div class="stat"><div class="stat-n">${ref}</div><div class="stat-l">Отказов</div></div>`;
+  const statsDiv = document.getElementById('stats');
+  if (statsDiv) {
+    statsDiv.innerHTML = `
+      <div class="stat"><div class="stat-n">${active}</div><div class="stat-l">В работе</div></div>
+      <div class="stat"><div class="stat-n">${offers}</div><div class="stat-l">На стадии оффера</div></div>
+      <div class="stat" onclick="filterToday()"><div class="stat-n">${tod}</div><div class="stat-l">Встреч сегодня 👆</div></div>
+      <div class="stat"><div class="stat-n">${ref}</div><div class="stat-l">Отказов</div></div>`;
+  }
 }
 
 function renderHeaders() {
@@ -388,21 +397,26 @@ function renderHeaders() {
     { key: '', label: 'PDF/HH', width: '70px' },
     { key: '', label: '', width: '50px' }
   ];
-  document.getElementById('thead-row').innerHTML = cols.map(c =>
-    `<th${c.key ? ` onclick="sortBy('${c.key}')"` : ''} style="width:${c.width};padding:10px 12px;background:#1F3864;color:#fff;font-weight:700;border-bottom:2px solid #162a4a;white-space:nowrap${c.key ? ';cursor:pointer' : ''}">
-      ${c.label}${c.key ? arrow(c.key) : ''}
-    </th>`
-  ).join('');
+  const theadRow = document.getElementById('thead-row');
+  if (theadRow) {
+    theadRow.innerHTML = cols.map(c =>
+      `<th${c.key ? ` onclick="sortBy('${c.key}')"` : ''} style="width:${c.width};padding:10px 12px;background:#1F3864;color:#fff;font-weight:700;border-bottom:2px solid #162a4a;white-space:nowrap${c.key ? ';cursor:pointer' : ''}">
+        ${c.label}${c.key ? arrow(c.key) : ''}
+      </th>`
+    ).join('');
+  } else {
+    console.error('thead-row not found');
+  }
 }
 
 function renderTable() {
   renderHeaders();
-  const q = document.getElementById('srch').value.toLowerCase();
-  const fv = document.getElementById('fV').value;
+  const q = document.getElementById('srch') ? document.getElementById('srch').value.toLowerCase() : '';
+  const fv = document.getElementById('fV') ? document.getElementById('fV').value : '';
   const stages = getChecked('stageDD');
   const statuses = getChecked('statusDD');
-  const activeOnly = document.getElementById('activeOnly').checked;
-  const fDate = document.getElementById('fDate').value;
+  const activeOnly = document.getElementById('activeOnly') ? document.getElementById('activeOnly').checked : true;
+  const fDate = document.getElementById('fDate') ? document.getElementById('fDate').value : '';
 
   let rows = D.candidates.filter(c => {
     if (q && !c.name.toLowerCase().includes(q)) return false;
@@ -427,8 +441,12 @@ function renderTable() {
   });
 
   const tb = document.getElementById('tb');
+  if (!tb) {
+    console.error('tbody not found');
+    return;
+  }
   if (!rows.length) {
-    tb.innerHTML = `<table><td colspan="14" class="empty">Нет кандидатов</td></tr>`;
+    tb.innerHTML = `<tr><td colspan="14" class="empty">Нет кандидатов</td></tr>`;
     return;
   }
 
@@ -471,6 +489,7 @@ function renderTable() {
 
 function renderHistory() {
   const hb = document.getElementById('hb');
+  if (!hb) return;
   const items = [...D.history].reverse();
   if (!items.length) {
     hb.innerHTML = `<div class="empty">История пуста</div>`;
@@ -493,25 +512,32 @@ function render() {
 function switchTab(t, el) {
   document.querySelectorAll('.tab').forEach(x => x.classList.remove('active'));
   el.classList.add('active');
-  document.getElementById('tc').style.display = t === 'c' ? 'block' : 'none';
-  document.getElementById('th').style.display = t === 'h' ? 'block' : 'none';
+  const tc = document.getElementById('tc');
+  const th = document.getElementById('th');
+  if (tc) tc.style.display = t === 'c' ? 'block' : 'none';
+  if (th) th.style.display = t === 'h' ? 'block' : 'none';
 }
 
-document.getElementById('srch').addEventListener('input', renderTable);
-document.getElementById('fV').addEventListener('input', renderTable);
+const srch = document.getElementById('srch');
+if (srch) srch.addEventListener('input', renderTable);
+const fV = document.getElementById('fV');
+if (fV) fV.addEventListener('input', renderTable);
 
 function closeModal() {
-  document.getElementById('mdl').style.display = 'none';
+  const mdl = document.getElementById('mdl');
+  if (mdl) mdl.style.display = 'none';
 }
 
 function modal(html) {
   const m = document.getElementById('mdl');
+  if (!m) return;
   m.style.display = 'flex';
   m.className = 'modal-bg';
   m.innerHTML = `<div class="modal">${html}</div>`;
 }
 
-document.getElementById('mdl').addEventListener('click', function(e) { if (e.target === this) closeModal(); });
+const mdlDiv = document.getElementById('mdl');
+if (mdlDiv) mdlDiv.addEventListener('click', function(e) { if (e.target === this) closeModal(); });
 
 // ========== PDF ПАРСИНГ ==========
 let pendingPdfName = '';
@@ -530,38 +556,23 @@ function loadPDFJS() {
   });
 }
 
-// УЛУЧШЕННАЯ ФУНКЦИЯ ПОИСКА ТЕЛЕФОНА
 function extractFromPDFText(text) {
   const result = { name: '', phone: '' };
-  
-  // Поиск ФИО (первые 500 символов)
   const namePattern = /([А-Я][а-я]+)\s+([А-Я][а-я]+)\s+([А-Я][а-я]+)/;
   const nameMatch = text.substring(0, 500).match(namePattern);
   if (nameMatch) result.name = nameMatch[0];
-  
-  // УНИВЕРСАЛЬНЫЙ ПОИСК ТЕЛЕФОНА
-  // Ищем +7, 8 или просто 7, затем любые разделители и 10 цифр
   const phoneRegex = /(?:\+7|8|7)[\s\-\(\)]*(\d{3})[\s\-\(\)]*(\d{3})[\s\-\(\)]*(\d{2})[\s\-\(\)]*(\d{2})/;
   const match = text.match(phoneRegex);
-  
   if (match) {
-    let phone = '+7' + match[1] + match[2] + match[3] + match[4];
-    // Если исходная строка начиналась с 8, всё равно оставляем +7 (правильный формат)
-    result.phone = phone;
+    result.phone = '+7' + match[1] + match[2] + match[3] + match[4];
   } else {
-    // Запасной вариант: просто 10 цифр подряд
     const simpleDigits = text.match(/\d{10}/);
-    if (simpleDigits) {
-      result.phone = '+7' + simpleDigits[0];
-    }
+    if (simpleDigits) result.phone = '+7' + simpleDigits[0];
   }
-  
-  // Отладка в консоль
   console.log('=== PDF Debug ===');
   console.log('Текст (первые 300 символов):', text.substring(0, 300));
   console.log('Найденный телефон:', result.phone);
   console.log('=================');
-  
   return result;
 }
 
@@ -570,7 +581,7 @@ async function parsePDF(e) {
   if (!file) return;
   pendingPdfName = file.name;
   const area = document.querySelector('.upload-area');
-  area.innerHTML = '⏳ Читаю резюме...';
+  if (area) area.innerHTML = '⏳ Читаю резюме...';
   try {
     await loadPDFJS();
     const arrayBuffer = await file.arrayBuffer();
@@ -582,24 +593,30 @@ async function parsePDF(e) {
       fullText += textContent.items.map(item => item.str).join(' ') + ' ';
     }
     const extracted = extractFromPDFText(fullText);
-    if (extracted.name) document.getElementById('fn').value = extracted.name;
-    if (extracted.phone) document.getElementById('fphone').value = extracted.phone;
-    if (extracted.phone) {
-      area.innerHTML = '✅ Телефон загружен из резюме!';
-      area.style.borderColor = '#639922';
-      area.style.background = '#EAF3DE';
-      area.style.color = '#3B6D11';
-    } else {
-      area.innerHTML = '⚠️ Не удалось найти телефон. Заполните вручную.';
-      area.style.borderColor = '#F9A825';
-      area.style.background = '#FFF8E1';
-      area.style.color = '#E65100';
+    const fnField = document.getElementById('fn');
+    if (fnField && extracted.name) fnField.value = extracted.name;
+    const fphoneField = document.getElementById('fphone');
+    if (fphoneField && extracted.phone) fphoneField.value = extracted.phone;
+    if (area) {
+      if (extracted.phone) {
+        area.innerHTML = '✅ Телефон загружен из резюме!';
+        area.style.borderColor = '#639922';
+        area.style.background = '#EAF3DE';
+        area.style.color = '#3B6D11';
+      } else {
+        area.innerHTML = '⚠️ Не удалось найти телефон. Заполните вручную.';
+        area.style.borderColor = '#F9A825';
+        area.style.background = '#FFF8E1';
+        area.style.color = '#E65100';
+      }
     }
   } catch (err) {
     console.error(err);
-    area.innerHTML = '⚠️ Ошибка чтения PDF. Заполните вручную.';
-    area.style.borderColor = '#E24B4A';
-    area.style.color = '#A32D2D';
+    if (area) {
+      area.innerHTML = '⚠️ Ошибка чтения PDF. Заполните вручную.';
+      area.style.borderColor = '#E24B4A';
+      area.style.color = '#A32D2D';
+    }
   }
 }
 
