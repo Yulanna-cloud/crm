@@ -122,7 +122,7 @@ tr:hover td{background:#e8f0fc}
 </div>
 <div id="tc">
   <div class="tbl-wrap">
-    <table><thead><tr id="thead-row"></tr></thead><tbody id="tb"></tbody></table>
+    <table><thead><tr id="thead-row"></table></thead><tbody id="tb"></tbody></table>
   </div>
 </div>
 <div id="th" style="display:none">
@@ -428,7 +428,7 @@ function renderTable() {
 
   const tb = document.getElementById('tb');
   if (!rows.length) {
-    tb.innerHTML = `<tr><td colspan="14" class="empty">Нет кандидатов</td></tr>`;
+    tb.innerHTML = `<table><td colspan="14" class="empty">Нет кандидатов</td></tr>`;
     return;
   }
 
@@ -530,26 +530,38 @@ function loadPDFJS() {
   });
 }
 
+// УЛУЧШЕННАЯ ФУНКЦИЯ ПОИСКА ТЕЛЕФОНА
 function extractFromPDFText(text) {
   const result = { name: '', phone: '' };
+  
+  // Поиск ФИО (первые 500 символов)
   const namePattern = /([А-Я][а-я]+)\s+([А-Я][а-я]+)\s+([А-Я][а-я]+)/;
   const nameMatch = text.substring(0, 500).match(namePattern);
   if (nameMatch) result.name = nameMatch[0];
-  const phonePatterns = [
-    /(\+7|8)[\s\-]?\(?(\d{3})\)?[\s\-]?(\d{3})[\s\-]?(\d{2})[\s\-]?(\d{2})/,
-    /(\+7|8)\s?\(?\d{3}\)?\s?\d{3}[-\s]?\d{2}[-\s]?\d{2}/,
-    /(\+7|8)\d{10}/
-  ];
-  for (const pattern of phonePatterns) {
-    const match = text.match(pattern);
-    if (match) {
-      let phone = match[0].replace(/[\s\-\(\)]/g, '');
-      if (phone.startsWith('8')) phone = '+7' + phone.substring(1);
-      else if (!phone.startsWith('+')) phone = '+' + phone;
-      result.phone = phone;
-      break;
+  
+  // УНИВЕРСАЛЬНЫЙ ПОИСК ТЕЛЕФОНА
+  // Ищем +7, 8 или просто 7, затем любые разделители и 10 цифр
+  const phoneRegex = /(?:\+7|8|7)[\s\-\(\)]*(\d{3})[\s\-\(\)]*(\d{3})[\s\-\(\)]*(\d{2})[\s\-\(\)]*(\d{2})/;
+  const match = text.match(phoneRegex);
+  
+  if (match) {
+    let phone = '+7' + match[1] + match[2] + match[3] + match[4];
+    // Если исходная строка начиналась с 8, всё равно оставляем +7 (правильный формат)
+    result.phone = phone;
+  } else {
+    // Запасной вариант: просто 10 цифр подряд
+    const simpleDigits = text.match(/\d{10}/);
+    if (simpleDigits) {
+      result.phone = '+7' + simpleDigits[0];
     }
   }
+  
+  // Отладка в консоль
+  console.log('=== PDF Debug ===');
+  console.log('Текст (первые 300 символов):', text.substring(0, 300));
+  console.log('Найденный телефон:', result.phone);
+  console.log('=================');
+  
   return result;
 }
 
