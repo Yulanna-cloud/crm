@@ -140,7 +140,7 @@ tr:hover td{background:#e8f0fc}
 
 <script>
 // ========== GOOGLE SHEETS SYNC ==========
-const SHEETS_URL = 'https://script.google.com/macros/s/AKfycbztmjJsuV7NHWRvit3QCEYuyd-cX6Qp_5zUAJzJqv5nVmOJD6UKXZ7Kkd_VjTwNlWVh/exec';
+const SHEETS_URL = 'https://script.google.com/macros/s/AKfycbz4bRHeOTKV9Be1sSiF2EYa1Q_n8h6kqIdGRLMYkYZwJ3-z6kraaB0L6rCvwPWaqD7S/exec';
 
 function setSyncStatus(msg, type) {
   const el = document.getElementById('syncStatus');
@@ -154,25 +154,13 @@ function setSyncStatus(msg, type) {
 function syncToSheets() {
   setSyncStatus('⏳ Сохраняю...', 'loading');
   const data = JSON.stringify({ candidates: D.candidates, history: D.history });
-  const url = SHEETS_URL + '?action=write&data=' + encodeURIComponent(data);
-  const script = document.createElement('script');
-  const cbName = 'cb_write_' + Date.now();
-  window[cbName] = function(res) {
-    delete window[cbName];
-    document.head.removeChild(script);
-    if (res && res.ok) {
-      setSyncStatus('✅ Сохранено в таблицу!', 'ok');
-      saveLocal();
-    } else {
-      setSyncStatus('❌ Ошибка сохранения', 'err');
-    }
-  };
-  script.src = url + '&callback=' + cbName;
-  script.onerror = function() {
-    delete window[cbName];
-    setSyncStatus('❌ Нет соединения', 'err');
-  };
-  document.head.appendChild(script);
+  fetch(SHEETS_URL, { method: 'POST', body: data })
+    .then(r => r.json())
+    .then(res => {
+      if (res && res.ok) { setSyncStatus('✅ Сохранено в таблицу!', 'ok'); }
+      else { setSyncStatus('❌ Ошибка: ' + (res.error||''), 'err'); }
+    })
+    .catch(() => setSyncStatus('❌ Нет соединения', 'err'));
 }
 
 function loadFromSheets() {
