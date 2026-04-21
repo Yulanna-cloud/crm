@@ -117,6 +117,7 @@ tr:hover td{background:#e8f0fc}
     </div>
     <button class="btn btn-sync" onclick="syncToSheets()">☁️ Сохранить в таблицу</button>
     <button class="btn btn-load" onclick="loadFromSheets()">🔄 Загрузить из таблицы</button>
+    <label class="btn" style="cursor:pointer;background:#fff3e0;border-color:#ff9800;color:#e65100;font-weight:600">📂 Импорт JSON<input type="file" accept=".json" onchange="importJSON(event)" style="display:none"></label>
     <button class="btn btn-primary" onclick="openAdd()">+ Добавить</button>
     <span id="syncStatus" class="sync-status" style="display:none"></span>
   </div>
@@ -712,6 +713,24 @@ function saveHist(id) {
   saveData();
   closeModal();
   render();
+}
+
+function importJSON(e) {
+  const file = e.target.files[0]; if(!file) return;
+  const reader = new FileReader();
+  reader.onload = function(ev) {
+    try {
+      const data = JSON.parse(ev.target.result);
+      if(data.candidates && Array.isArray(data.candidates)) D.candidates = data.candidates;
+      if(data.history && Array.isArray(data.history)) D.history = data.history;
+      saveLocal();
+      render();
+      syncToSheets();
+      alert('✅ Данные загружены и сохранены в таблицу!');
+    } catch(err) { alert('Ошибка: ' + err.message); }
+  };
+  reader.readAsText(file);
+  e.target.value = '';
 }
 
 // Старт: загружаем из localStorage, потом сразу подтягиваем из таблицы
