@@ -18,8 +18,8 @@ body{font-family:Arial,sans-serif;font-size:15px;color:#111;background:#eef2f7}
 .btn-primary:hover{background:#162a4a}
 .btn-sm{padding:3px 8px;font-size:11px;height:24px}
 .btn-sync{background:#e8f5e9;border-color:#4caf50;color:#2e7d32;font-weight:600}
-.btn-save{background:#e8f5e9;border-color:#4caf50;color:#2e7d32;font-weight:600}
 .btn-load{background:#e3f2fd;border-color:#1976d2;color:#1565c0;font-weight:600}
+.btn-report{background:#f3e5f5;border-color:#9c27b0;color:#6a1b9a;font-weight:600}
 .stats{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:14px}
 .stat{background:#fff;border-radius:8px;padding:12px 14px;border:1px solid #e0e0e0;cursor:pointer}
 .stat:hover{border-color:#1F3864}
@@ -55,6 +55,7 @@ tr:hover td{background:#e8f0fc}
 .empty{text-align:center;padding:32px;color:#aaa}
 .modal-bg{position:fixed;inset:0;background:rgba(0,0,0,0.4);display:flex;align-items:center;justify-content:center;z-index:200}
 .modal{background:#fff;border-radius:12px;border:1px solid #ddd;padding:20px;width:600px;max-width:96vw;max-height:90vh;overflow-y:auto;box-shadow:0 8px 32px rgba(0,0,0,0.15)}
+.modal-wide{width:800px}
 .modal h2{font-size:16px;font-weight:600;margin-bottom:16px;color:#1F3864}
 .fr{margin-bottom:12px}
 .fr label{display:block;font-size:11px;color:#888;margin-bottom:4px;font-weight:600;text-transform:uppercase}
@@ -62,6 +63,7 @@ tr:hover td{background:#e8f0fc}
 .fr input:focus,.fr select:focus,.fr textarea:focus{outline:none;border-color:#1F3864}
 .fr textarea{height:70px;resize:vertical;font-family:Arial,sans-serif}
 .f2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.f3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px}
 .mfoot{display:flex;justify-content:flex-end;gap:8px;margin-top:16px;padding-top:12px;border-top:1px solid #eee}
 .hist-item{padding:10px 14px;border-bottom:1px solid #f0f0f0;display:grid;grid-template-columns:90px 150px 1fr 60px;gap:10px;font-size:13px}
 .hist-item:last-child{border-bottom:none}
@@ -72,6 +74,24 @@ tr:hover td{background:#e8f0fc}
 .sync-ok{background:#e8f5e9;color:#2e7d32}
 .sync-err{background:#ffebee;color:#c62828}
 .sync-loading{background:#fff8e1;color:#f57f17}
+/* Отчёт */
+.report-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:16px}
+.report-card{background:#f8f9ff;border:1px solid #c8d4e8;border-radius:8px;padding:14px;text-align:center}
+.report-card-n{font-size:32px;font-weight:700;color:#1F3864}
+.report-card-l{font-size:12px;color:#555;margin-top:4px;font-weight:600}
+.report-card.green{background:#e8f5e9;border-color:#a5d6a7}
+.report-card.green .report-card-n{color:#2e7d32}
+.report-card.red{background:#ffebee;border-color:#ef9a9a}
+.report-card.red .report-card-n{color:#c62828}
+.report-card.blue{background:#e3f2fd;border-color:#90caf9}
+.report-card.blue .report-card-n{color:#1565c0}
+.report-card.orange{background:#fff3e0;border-color:#ffcc80}
+.report-card.orange .report-card-n{color:#e65100}
+.report-detail{background:#f8f9ff;border:1px solid #e0e0e0;border-radius:8px;overflow:hidden;margin-bottom:12px}
+.report-detail table{font-size:12px}
+.report-detail th{background:#e8ecf5;color:#1F3864;padding:7px 10px}
+.report-detail td{padding:6px 10px}
+.multiselect-dd{display:none;position:absolute;top:34px;left:0;background:#fff;border:1px solid #ccc;border-radius:8px;box-shadow:0 4px 16px rgba(0,0,0,0.12);z-index:100;min-width:230px;padding:8px 0}
 </style>
 </head>
 <body>
@@ -89,7 +109,7 @@ tr:hover td{background:#e8f0fc}
     <select id="fV"><option value="">Все вакансии</option><option>Менеджер по продажам</option><option>РОП (Далер)</option><option>инженер-сметчик</option><option>РОП</option><option>Project Manager</option></select>
     <div style="position:relative;display:inline-block">
       <button class="btn" onclick="toggleDD('stageDD')" id="stageBtnLabel" style="min-width:120px;text-align:left">Все этапы ▾</button>
-      <div id="stageDD" style="display:none;position:absolute;top:34px;left:0;background:#fff;border:1px solid #ccc;border-radius:8px;box-shadow:0 4px 16px rgba(0,0,0,0.12);z-index:100;min-width:230px;padding:8px 0">
+      <div id="stageDD" class="multiselect-dd">
         <label style="display:flex;align-items:center;gap:8px;padding:6px 14px;cursor:pointer;font-size:13px"><input type="checkbox" value="Интервью HR" onchange="applyStageFilter()"> Интервью HR</label>
         <label style="display:flex;align-items:center;gap:8px;padding:6px 14px;cursor:pointer;font-size:13px"><input type="checkbox" value="Интервью с руководителем" onchange="applyStageFilter()"> Интервью с руководителем</label>
         <label style="display:flex;align-items:center;gap:8px;padding:6px 14px;cursor:pointer;font-size:13px"><input type="checkbox" value="Отклик" onchange="applyStageFilter()"> Отклик</label>
@@ -102,22 +122,22 @@ tr:hover td{background:#e8f0fc}
     </div>
     <div style="position:relative;display:inline-block">
       <button class="btn" onclick="toggleDD('statusDD')" id="statusBtnLabel" style="min-width:120px;text-align:left">Все статусы ▾</button>
-      <div id="statusDD" style="display:none;position:absolute;top:34px;left:0;background:#fff;border:1px solid #ccc;border-radius:8px;box-shadow:0 4px 16px rgba(0,0,0,0.12);z-index:100;min-width:240px;padding:8px 0">
+      <div id="statusDD" class="multiselect-dd">
         <label style="display:flex;align-items:center;gap:8px;padding:6px 14px;cursor:pointer;font-size:13px"><input type="checkbox" value="В работе" onchange="applyStatusFilter()"> В работе</label>
         <label style="display:flex;align-items:center;gap:8px;padding:6px 14px;cursor:pointer;font-size:13px"><input type="checkbox" value="Перенос собеседования" onchange="applyStatusFilter()"> Перенос собеседования</label>
-        <label style="display:flex;align-items:center;gap:8px;padding:6px 14px;cursor:pointer;font-size:13px"><input type="checkbox" value="Отказался сам" onchange="applyStatusFilter()"> Отказался сам</label>
-        <label style="display:flex;align-items:center;gap:8px;padding:6px 14px;cursor:pointer;font-size:13px"><input type="checkbox" value="Отказалась сама" onchange="applyStatusFilter()"> Отказалась сама</label>
+        <label style="display:flex;align-items:center;gap:8px;padding:6px 14px;cursor:pointer;font-size:13px"><input type="checkbox" value="Отказался сам (кандидат)" onchange="applyStatusFilter()"> Отказался сам (кандидат)</label>
         <label style="display:flex;align-items:center;gap:8px;padding:6px 14px;cursor:pointer;font-size:13px"><input type="checkbox" value="Отказ" onchange="applyStatusFilter()"> Отказ</label>
         <label style="display:flex;align-items:center;gap:8px;padding:6px 14px;cursor:pointer;font-size:13px"><input type="checkbox" value="Оффер" onchange="applyStatusFilter()"> Оффер</label>
         <label style="display:flex;align-items:center;gap:8px;padding:6px 14px;cursor:pointer;font-size:13px"><input type="checkbox" value="Вышел" onchange="applyStatusFilter()"> Вышел</label>
-        <label style="display:flex;align-items:center;gap:8px;padding:6px 14px;cursor:pointer;font-size:13px"><input type="checkbox" value="Не вышла на собес" onchange="applyStatusFilter()"> Не вышла на собес</label>
+        <label style="display:flex;align-items:center;gap:8px;padding:6px 14px;cursor:pointer;font-size:13px"><input type="checkbox" value="Не вышел на собеседование" onchange="applyStatusFilter()"> Не вышел на собеседование</label>
         <label style="display:flex;align-items:center;gap:8px;padding:6px 14px;cursor:pointer;font-size:13px"><input type="checkbox" value="Собеседование с РОП" onchange="applyStatusFilter()"> Собеседование с РОП</label>
         <div style="border-top:1px solid #eee;margin:4px 0;padding:4px 14px"><button class="btn btn-sm" onclick="clearStatusFilter()">Сбросить</button></div>
       </div>
     </div>
-    <button class="btn btn-sync" onclick="syncToSheets()">☁️ Сохранить в таблицу</button>
-    <button class="btn btn-load" onclick="loadFromSheets()">🔄 Загрузить из таблицы</button>
-    <label class="btn" style="cursor:pointer;background:#fff3e0;border-color:#ff9800;color:#e65100;font-weight:600">📂 Импорт JSON<input type="file" accept=".json" onchange="importJSON(event)" style="display:none"></label>
+    <button class="btn btn-report" onclick="openReport()">📊 Отчёт</button>
+    <button class="btn btn-sync" onclick="syncToSheets()">☁️ Сохранить</button>
+    <button class="btn btn-load" onclick="loadFromSheets()">🔄 Загрузить</button>
+    <label class="btn" style="cursor:pointer;background:#fff3e0;border-color:#ff9800;color:#e65100;font-weight:600">📂 Импорт<input type="file" accept=".json" onchange="importJSON(event)" style="display:none"></label>
     <button class="btn btn-primary" onclick="openAdd()">+ Добавить</button>
     <span id="syncStatus" class="sync-status" style="display:none"></span>
   </div>
@@ -139,7 +159,6 @@ tr:hover td{background:#e8f0fc}
 <div id="mdl" style="display:none"></div>
 
 <script>
-// ========== GOOGLE SHEETS SYNC ==========
 const SHEETS_URL = 'https://script.google.com/macros/s/AKfycbz4bRHeOTKV9Be1sSiF2EYa1Q_n8h6kqIdGRLMYkYZwJ3-z6kraaB0L6rCvwPWaqD7S/exec';
 
 function setSyncStatus(msg, type) {
@@ -153,19 +172,17 @@ function setSyncStatus(msg, type) {
 
 function syncToSheets() {
   setSyncStatus('⏳ Сохраняю...', 'loading');
-  const data = JSON.stringify({ candidates: D.candidates, history: D.history });
-  fetch(SHEETS_URL, { method: 'POST', body: data })
+  fetch(SHEETS_URL, { method: 'POST', body: JSON.stringify({ candidates: D.candidates, history: D.history }) })
     .then(r => r.json())
     .then(res => {
-      if (res && res.ok) { setSyncStatus('✅ Сохранено в таблицу!', 'ok'); }
-      else { setSyncStatus('❌ Ошибка: ' + (res.error||''), 'err'); }
+      if (res && res.ok) setSyncStatus('✅ Сохранено!', 'ok');
+      else setSyncStatus('❌ Ошибка', 'err');
     })
     .catch(() => setSyncStatus('❌ Нет соединения', 'err'));
 }
 
 function loadFromSheets() {
   setSyncStatus('⏳ Загружаю...', 'loading');
-  const url = SHEETS_URL + '?action=read';
   const script = document.createElement('script');
   const cbName = 'cb_read_' + Date.now();
   window[cbName] = function(res) {
@@ -174,40 +191,36 @@ function loadFromSheets() {
     if (res && res.ok && res.data) {
       if (res.data.candidates) D.candidates = res.data.candidates;
       if (res.data.history) D.history = res.data.history;
-      saveLocal();
-      render();
-      setSyncStatus('✅ Данные загружены!', 'ok');
-    } else {
-      setSyncStatus('❌ Ошибка загрузки', 'err');
-    }
+      saveLocal(); render();
+      setSyncStatus('✅ Загружено!', 'ok');
+    } else setSyncStatus('❌ Ошибка загрузки', 'err');
   };
-  script.src = url + '&callback=' + cbName;
-  script.onerror = function() {
-    delete window[cbName];
-    setSyncStatus('❌ Нет соединения', 'err');
-  };
+  script.src = SHEETS_URL + '?action=read&callback=' + cbName;
+  script.onerror = () => { delete window[cbName]; setSyncStatus('❌ Нет соединения', 'err'); };
   document.head.appendChild(script);
 }
 
-// ========== ОСНОВНОЙ КОД ==========
+// Нормализация старых статусов при загрузке
+function normalizeStatus(s) {
+  if (!s) return s;
+  if (s === 'Отказался сам' || s === 'Отказалась сама') return 'Отказался сам (кандидат)';
+  if (s === 'Не вышла на собес') return 'Не вышел на собеседование';
+  return s;
+}
+
 const STAGES = ['Отклик', 'Интервью HR', 'Интервью с руководителем', 'Финал', 'Оффер', 'Обучение', 'Выход'];
-const STATUSES = ['В работе', 'Перенос собеседования', 'Отказался сам', 'Отказалась сама', 'Отказ', 'Оффер', 'Вышел', 'Не вышла на собес', 'Собеседование с РОП'];
+const STATUSES = ['В работе', 'Перенос собеседования', 'Отказался сам (кандидат)', 'Отказ', 'Оффер', 'Вышел', 'Не вышел на собеседование', 'Собеседование с РОП'];
 const VACANCIES = ['Менеджер по продажам', 'РОП (Далер)', 'инженер-сметчик', 'РОП', 'Project Manager'];
-const EVENTS = ['Добавлен кандидат', 'Интервью HR', 'Интервью с руководителем', 'Тестовое задание', 'Оффер отправлен', 'Оффер принят', 'Отказался сам', 'Отказ компании', 'Выход на работу'];
-const REFUSE_REASONS = ['', 'Слабая', 'Не пришла на интервью', 'Не подходит доход', 'Приняла другой оффер', 'Другое'];
-const INACTIVE = ['Отказ', 'Отказался сам', 'Отказалась сама', 'Вышел', 'Не вышла на собес'];
+const EVENTS = ['Добавлен кандидат', 'Интервью HR', 'Интервью с руководителем', 'Тестовое задание', 'Оффер отправлен', 'Оффер принят', 'Отказался сам (кандидат)', 'Отказ компании', 'Выход на работу'];
+const REFUSE_REASONS = ['', 'Слабая', 'Не пришла на интервью', 'Не подходит доход', 'Приняла другой оффер', 'Нерелевантный опыт', 'Другое'];
+const INACTIVE = ['Отказ', 'Отказался сам (кандидат)', 'Вышел', 'Не вышел на собеседование'];
+const REFUSE_STATUSES = ['Отказ', 'Отказался сам (кандидат)', 'Не вышел на собеседование'];
 
 let D = { candidates: [], history: [] };
 
 function loadLocal() {
-  try {
-    const saved = localStorage.getItem('crm_candidates');
-    if (saved) { const p = JSON.parse(saved); if (Array.isArray(p)) D.candidates = p; }
-  } catch(e) { D.candidates = []; }
-  try {
-    const savedH = localStorage.getItem('crm_history');
-    if (savedH) { const p = JSON.parse(savedH); if (Array.isArray(p)) D.history = p; }
-  } catch(e) { D.history = []; }
+  try { const s = localStorage.getItem('crm_candidates'); if (s) { const p = JSON.parse(s); if (Array.isArray(p)) D.candidates = p.map(c => ({ ...c, status: normalizeStatus(c.status) })); } } catch(e) { D.candidates = []; }
+  try { const s = localStorage.getItem('crm_history'); if (s) { const p = JSON.parse(s); if (Array.isArray(p)) D.history = p; } } catch(e) { D.history = []; }
 }
 
 function saveLocal() {
@@ -215,10 +228,7 @@ function saveLocal() {
   localStorage.setItem('crm_history', JSON.stringify(D.history));
 }
 
-function saveData() {
-  saveLocal();
-  syncToSheets();
-}
+function saveData() { saveLocal(); syncToSheets(); }
 
 function todayStr() {
   const d = new Date();
@@ -251,11 +261,14 @@ function sel(opts, val) {
 
 function toggleRefuse(s, divId) {
   const d = document.getElementById(divId);
-  if (d) d.style.display = ['Отказ','Отказался сам','Отказалась сама'].includes(s.value) ? 'block' : 'none';
+  if (d) d.style.display = ['Отказ','Отказался сам (кандидат)'].includes(s.value) ? 'block' : 'none';
 }
 
 function sbadge(s) {
-  const m = {'В работе':'bw','Перенос собеседования':'bpurple','Оффер':'bo','Вышел':'bout','Отказ':'br','Отказался сам':'brs','Отказалась сама':'brs','Не вышла на собес':'bnv','Собеседование с РОП':'brop'};
+  const m = {
+    'В работе':'bw','Перенос собеседования':'bpurple','Оффер':'bo','Вышел':'bout',
+    'Отказ':'br','Отказался сам (кандидат)':'brs','Не вышел на собеседование':'bnv','Собеседование с РОП':'brop'
+  };
   return `<span class="badge ${m[s]||'bdef'}">${s}</span>`;
 }
 
@@ -285,81 +298,56 @@ function rclass(c) {
 }
 
 let sortCol='id', sortDir=1;
-
-function sortBy(col) {
-  sortCol===col ? sortDir*=-1 : (sortCol=col, sortDir=1);
-  renderTable();
-}
-
+function sortBy(col) { sortCol===col ? sortDir*=-1 : (sortCol=col, sortDir=1); renderTable(); }
 function arrow(col) { return sortCol===col?(sortDir===1?' ↑':' ↓'):''; }
-
-function getChecked(ddId) {
-  return [...document.querySelectorAll(`#${ddId} input[type=checkbox]:checked`)].map(x=>x.value);
-}
+function getChecked(ddId) { return [...document.querySelectorAll(`#${ddId} input[type=checkbox]:checked`)].map(x=>x.value); }
 
 function applyStageFilter() {
   const checked = getChecked('stageDD');
-  const btn = document.getElementById('stageBtnLabel');
-  if (btn) btn.textContent = checked.length ? checked.join(', ')+' ▾' : 'Все этапы ▾';
+  document.getElementById('stageBtnLabel').textContent = checked.length ? checked.join(', ')+' ▾' : 'Все этапы ▾';
   renderTable();
 }
 
 function applyStatusFilter() {
   const checked = getChecked('statusDD');
-  const btn = document.getElementById('statusBtnLabel');
-  if (btn) btn.textContent = checked.length ? checked.join(', ')+' ▾' : 'Все статусы ▾';
+  document.getElementById('statusBtnLabel').textContent = checked.length ? checked.join(', ')+' ▾' : 'Все статусы ▾';
   renderTable();
 }
 
 function clearStageFilter() {
   document.querySelectorAll('#stageDD input').forEach(x=>x.checked=false);
-  const btn = document.getElementById('stageBtnLabel');
-  if (btn) btn.textContent = 'Все этапы ▾';
-  const dd = document.getElementById('stageDD');
-  if (dd) dd.style.display='none';
+  document.getElementById('stageBtnLabel').textContent = 'Все этапы ▾';
+  document.getElementById('stageDD').style.display='none';
   renderTable();
 }
 
 function clearStatusFilter() {
   document.querySelectorAll('#statusDD input').forEach(x=>x.checked=false);
-  const btn = document.getElementById('statusBtnLabel');
-  if (btn) btn.textContent = 'Все статусы ▾';
-  const dd = document.getElementById('statusDD');
-  if (dd) dd.style.display='none';
+  document.getElementById('statusBtnLabel').textContent = 'Все статусы ▾';
+  document.getElementById('statusDD').style.display='none';
   renderTable();
 }
 
 function toggleDD(id) {
   const dd = document.getElementById(id);
-  if (!dd) return;
-  ['stageDD','statusDD'].filter(x=>x!==id).forEach(x=>{const el=document.getElementById(x);if(el)el.style.display='none';});
+  ['stageDD','statusDD'].filter(x=>x!==id).forEach(x=>{ document.getElementById(x).style.display='none'; });
   dd.style.display = dd.style.display==='none'?'block':'none';
 }
 
 document.addEventListener('click', function(e) {
-  if (!e.target.closest('#stageDD') && !e.target.closest('[onclick*="stageDD"]')) {
-    const dd=document.getElementById('stageDD'); if(dd) dd.style.display='none';
-  }
-  if (!e.target.closest('#statusDD') && !e.target.closest('[onclick*="statusDD"]')) {
-    const dd=document.getElementById('statusDD'); if(dd) dd.style.display='none';
-  }
+  if (!e.target.closest('#stageDD') && !e.target.closest('[onclick*="stageDD"]')) document.getElementById('stageDD').style.display='none';
+  if (!e.target.closest('#statusDD') && !e.target.closest('[onclick*="statusDD"]')) document.getElementById('statusDD').style.display='none';
 });
 
-function setToday() {
-  const fd=document.getElementById('fDate'); if(fd) fd.value=todayStr(); renderTable();
-}
-
-function clearDate() {
-  const fd=document.getElementById('fDate'); if(fd) fd.value=''; renderTable();
-}
+function setToday() { document.getElementById('fDate').value=todayStr(); renderTable(); }
+function clearDate() { document.getElementById('fDate').value=''; renderTable(); }
 
 function renderStats() {
-  const statsDiv=document.getElementById('stats'); if(!statsDiv) return;
-  const active=D.candidates.filter(x=>x.status==='В работе').length;
-  const offers=D.candidates.filter(x=>x.status==='В работе'&&x.stage==='Оффер').length;
-  const tod=D.candidates.filter(x=>!INACTIVE.includes(x.status)&&isSameDay(x.nextDate)).length;
-  const ref=D.candidates.filter(x=>['Отказ','Отказался сам','Отказалась сама'].includes(x.status)).length;
-  statsDiv.innerHTML=`
+  const active = D.candidates.filter(x=>x.status==='В работе').length;
+  const offers = D.candidates.filter(x=>x.status==='В работе'&&x.stage==='Оффер').length;
+  const tod = D.candidates.filter(x=>!INACTIVE.includes(x.status)&&isSameDay(x.nextDate)).length;
+  const ref = D.candidates.filter(x=>REFUSE_STATUSES.includes(x.status)).length;
+  document.getElementById('stats').innerHTML=`
     <div class="stat"><div class="stat-n">${active}</div><div class="stat-l">В работе</div></div>
     <div class="stat"><div class="stat-n">${offers}</div><div class="stat-l">На стадии оффера</div></div>
     <div class="stat" onclick="setToday()"><div class="stat-n">${tod}</div><div class="stat-l">Встреч сегодня 👆</div></div>
@@ -367,39 +355,30 @@ function renderStats() {
 }
 
 function renderHeaders() {
-  const theadRow=document.getElementById('thead-row'); if(!theadRow) return;
   const cols=[
-    {key:'id',label:'ID',width:'60px'},
-    {key:'name',label:'ФИО',width:'180px'},
-    {key:'vacancy',label:'Вакансия',width:'170px'},
-    {key:'stage',label:'Этап',width:'130px'},
-    {key:'status',label:'Статус',width:'130px'},
-    {key:'',label:'Следующий шаг',width:'160px'},
-    {key:'date',label:'Дата',width:'90px'},
-    {key:'',label:'Время',width:'70px'},
-    {key:'',label:'Телефон',width:'130px'},
-    {key:'',label:'Причина отказа',width:'120px'},
-    {key:'',label:'Комментарий',width:'200px'},
-    {key:'',label:'Резюме',width:'70px'},
-    {key:'',label:'PDF/HH',width:'70px'},
-    {key:'',label:'',width:'50px'}
+    {key:'id',label:'ID',width:'60px'},{key:'name',label:'ФИО',width:'180px'},
+    {key:'vacancy',label:'Вакансия',width:'170px'},{key:'stage',label:'Этап',width:'130px'},
+    {key:'status',label:'Статус',width:'160px'},{key:'',label:'Следующий шаг',width:'160px'},
+    {key:'date',label:'Дата',width:'90px'},{key:'',label:'Время',width:'70px'},
+    {key:'',label:'Телефон',width:'130px'},{key:'',label:'Причина отказа',width:'120px'},
+    {key:'',label:'Комментарий',width:'200px'},{key:'',label:'Резюме',width:'70px'},
+    {key:'',label:'PDF/HH',width:'70px'},{key:'',label:'',width:'50px'}
   ];
-  theadRow.innerHTML=cols.map(c=>
+  document.getElementById('thead-row').innerHTML=cols.map(c=>
     `<th${c.key?` onclick="sortBy('${c.key}')"`:''} style="width:${c.width};padding:10px 12px;background:#1F3864;color:#fff;font-weight:700;border-bottom:2px solid #162a4a;white-space:nowrap${c.key?';cursor:pointer':''}">
       ${c.label}${c.key?arrow(c.key):''}
-    </th>`
-  ).join('');
+    </th>`).join('');
 }
 
 function renderTable() {
-  const tb=document.getElementById('tb'); if(!tb) return;
+  const tb=document.getElementById('tb');
   renderHeaders();
-  const q=document.getElementById('srch')?document.getElementById('srch').value.toLowerCase():'';
-  const fv=document.getElementById('fV')?document.getElementById('fV').value:'';
+  const q=(document.getElementById('srch').value||'').toLowerCase();
+  const fv=document.getElementById('fV').value;
   const stages=getChecked('stageDD');
   const statuses=getChecked('statusDD');
-  const activeOnly=document.getElementById('activeOnly')?document.getElementById('activeOnly').checked:true;
-  const fDate=document.getElementById('fDate')?document.getElementById('fDate').value:'';
+  const activeOnly=document.getElementById('activeOnly').checked;
+  const fDate=document.getElementById('fDate').value;
 
   let rows=D.candidates.filter(c=>{
     if(q && !c.name.toLowerCase().includes(q)) return false;
@@ -424,37 +403,27 @@ function renderTable() {
   });
 
   if(!rows.length){tb.innerHTML=`<tr><td colspan="14" class="empty">Нет кандидатов</td></tr>`;return;}
-
   tb.innerHTML=rows.map(c=>{
     let phone='';
-    if(c.contacts){const parts=c.contacts.split(' / ');for(let p of parts){if(p.match(/[\d\+]/)){phone=p;break;}}}
+    if(c.contacts){for(let p of c.contacts.split(' / ')){if(p.match(/[\d\+]/)){phone=p;break;}}}
     const resume=c.resumeLink?`<a href="${c.resumeLink}" target="_blank" style="color:#185FA5">Открыть</a>`:'—';
     const hhOrPdf=c.hhLink?`<a href="${c.hhLink}" target="_blank" style="color:#d6001c">HH ↗</a>`:(c.pdfName?`📄 ${c.pdfName.length>15?c.pdfName.slice(0,13)+'…':c.pdfName}`:'—');
-    const isRefused=INACTIVE.includes(c.status);
-    const refReason=isRefused&&c.refuseReason?`<span class="badge br">${c.refuseReason}</span>`:'';
+    const refReason=REFUSE_STATUSES.includes(c.status)&&c.refuseReason?`<span class="badge br">${c.refuseReason}</span>`:'';
     const vacClass=vacancyColorClass(c.vacancy);
     const vacancyHtml=vacClass?`<span class="${vacClass}">${c.vacancy}</span>`:c.vacancy;
     return `<tr class="${rclass(c)}">
-      <td>${c.id}</td>
-      <td><b>${c.name}</b></td>
-      <td>${vacancyHtml}</td>
-      <td>${c.stage}</td>
-      <td>${sbadge(c.status)}</td>
-      <td>${c.next||'—'}</td>
-      <td>${dlabel(c.nextDate)}</td>
-      <td>${c.meetTime||''}</td>
-      <td>${phone||'—'}</td>
-      <td>${refReason}</td>
+      <td>${c.id}</td><td><b>${c.name}</b></td><td>${vacancyHtml}</td><td>${c.stage}</td>
+      <td>${sbadge(c.status)}</td><td>${c.next||'—'}</td><td>${dlabel(c.nextDate)}</td>
+      <td>${c.meetTime||''}</td><td>${phone||'—'}</td><td>${refReason}</td>
       <td style="max-width:200px;white-space:normal">${c.comment||''}</td>
-      <td>${resume}</td>
-      <td>${hhOrPdf}</td>
+      <td>${resume}</td><td>${hhOrPdf}</td>
       <td><button class="btn btn-sm" onclick="openEdit('${c.id}')">✏️</button></td>
     </tr>`;
   }).join('');
 }
 
 function renderHistory() {
-  const hb=document.getElementById('hb'); if(!hb) return;
+  const hb=document.getElementById('hb');
   const items=[...D.history].reverse();
   if(!items.length){hb.innerHTML=`<div class="empty">История пуста</div>`;return;}
   hb.innerHTML=items.map(h=>`<div class="hist-item">
@@ -470,49 +439,152 @@ function render() { renderStats(); renderTable(); renderHistory(); }
 function switchTab(t, el) {
   document.querySelectorAll('.tab').forEach(x=>x.classList.remove('active'));
   el.classList.add('active');
-  const tc=document.getElementById('tc'); const th=document.getElementById('th');
-  if(tc) tc.style.display=t==='c'?'block':'none';
-  if(th) th.style.display=t==='h'?'block':'none';
+  document.getElementById('tc').style.display=t==='c'?'block':'none';
+  document.getElementById('th').style.display=t==='h'?'block':'none';
 }
 
 document.getElementById('srch')?.addEventListener('input', renderTable);
 document.getElementById('fV')?.addEventListener('input', renderTable);
 
-function closeModal() { const m=document.getElementById('mdl'); if(m) m.style.display='none'; }
-
-function modal(html) {
-  const m=document.getElementById('mdl'); if(!m) return;
+function closeModal() { document.getElementById('mdl').style.display='none'; }
+function modal(html, wide) {
+  const m=document.getElementById('mdl');
   m.style.display='flex'; m.className='modal-bg';
-  m.innerHTML=`<div class="modal">${html}</div>`;
+  m.innerHTML=`<div class="modal${wide?' modal-wide':''}">${html}</div>`;
 }
-
 document.getElementById('mdl')?.addEventListener('click', function(e){if(e.target===this)closeModal();});
 
-// PDF парсинг
-let pendingPdfName='';
+// ========== ОТЧЁТ ==========
+function openReport() {
+  modal(`<h2>📊 Отчёт по кандидатам</h2>
+    <div class="f3">
+      <div class="fr"><label>Период от</label><input type="date" id="rFrom"></div>
+      <div class="fr"><label>Период до</label><input type="date" id="rTo" value="${todayStr()}"></div>
+      <div class="fr"><label>Вакансия</label><select id="rVac"><option value="">Все</option>${VACANCIES.map(v=>`<option>${v}</option>`).join('')}</select></div>
+    </div>
+    <div class="f2">
+      <div class="fr" style="position:relative">
+        <label>Этапы (можно несколько)</label>
+        <button class="btn" onclick="toggleDD('rStageDD')" id="rStageLbl" style="width:100%;text-align:left">Все этапы ▾</button>
+        <div id="rStageDD" class="multiselect-dd">
+          ${STAGES.map(s=>`<label style="display:flex;align-items:center;gap:8px;padding:6px 14px;cursor:pointer;font-size:13px"><input type="checkbox" value="${s}" name="rStage"> ${s}</label>`).join('')}
+        </div>
+      </div>
+      <div class="fr" style="position:relative">
+        <label>Статусы (можно несколько)</label>
+        <button class="btn" onclick="toggleDD('rStatusDD')" id="rStatusLbl" style="width:100%;text-align:left">Все статусы ▾</button>
+        <div id="rStatusDD" class="multiselect-dd">
+          ${STATUSES.map(s=>`<label style="display:flex;align-items:center;gap:8px;padding:6px 14px;cursor:pointer;font-size:13px"><input type="checkbox" value="${s}" name="rStatus"> ${s}</label>`).join('')}
+          <label style="display:flex;align-items:center;gap:8px;padding:6px 14px;cursor:pointer;font-size:13px"><input type="checkbox" value="__all_refuse__" name="rStatus"> Все отказы (вместе)</label>
+        </div>
+      </div>
+    </div>
+    <div class="mfoot" style="justify-content:space-between">
+      <button class="btn" onclick="closeModal()">Закрыть</button>
+      <button class="btn btn-primary" onclick="buildReport()">Сформировать</button>
+    </div>
+    <div id="reportResult" style="margin-top:16px"></div>
+  `, true);
 
+  // Синхронизируем чекбоксы этапов и статусов в модалке
+  document.querySelectorAll('[name=rStage]').forEach(cb=>{
+    cb.addEventListener('change', ()=>{
+      const checked=[...document.querySelectorAll('[name=rStage]:checked')].map(x=>x.value);
+      document.getElementById('rStageLbl').textContent=checked.length?checked.join(', ')+' ▾':'Все этапы ▾';
+    });
+  });
+  document.querySelectorAll('[name=rStatus]').forEach(cb=>{
+    cb.addEventListener('change', ()=>{
+      const checked=[...document.querySelectorAll('[name=rStatus]:checked')].map(x=>x.value);
+      document.getElementById('rStatusLbl').textContent=checked.length?checked.join(', ')+' ▾':'Все статусы ▾';
+    });
+  });
+}
+
+function buildReport() {
+  const from = document.getElementById('rFrom').value;
+  const to = document.getElementById('rTo').value;
+  const vac = document.getElementById('rVac').value;
+  const selStages = [...document.querySelectorAll('[name=rStage]:checked')].map(x=>x.value);
+  const selStatuses = [...document.querySelectorAll('[name=rStatus]:checked')].map(x=>x.value);
+
+  // Если выбрано "Все отказы вместе" — подставляем все статусы отказов
+  let effectiveStatuses = selStatuses;
+  if (selStatuses.includes('__all_refuse__')) {
+    effectiveStatuses = [...new Set([...selStatuses.filter(x=>x!=='__all_refuse__'), ...REFUSE_STATUSES])];
+  }
+
+  let pool = D.candidates;
+
+  // Фильтр по дате добавления
+  if (from) pool = pool.filter(c => c.added && c.added >= from);
+  if (to)   pool = pool.filter(c => c.added && c.added <= to);
+  if (vac)  pool = pool.filter(c => c.vacancy === vac);
+  if (selStages.length) pool = pool.filter(c => selStages.includes(c.stage));
+  if (effectiveStatuses.length) pool = pool.filter(c => effectiveStatuses.includes(c.status));
+
+  const total = pool.length;
+  const refused = pool.filter(c=>REFUSE_STATUSES.includes(c.status)).length;
+  const selfRefuse = pool.filter(c=>c.status==='Отказался сам (кандидат)').length;
+  const noShow = pool.filter(c=>c.status==='Не вышел на собеседование').length;
+  const compRefuse = pool.filter(c=>c.status==='Отказ').length;
+  const training = pool.filter(c=>c.stage==='Обучение'||c.stage==='Выход').length;
+  const offer = pool.filter(c=>c.stage==='Оффер'||c.status==='Оффер').length;
+  const inWork = pool.filter(c=>c.status==='В работе').length;
+
+  const period = (from?`с ${from.split('-').reverse().join('.')} `:'') + (to?`по ${to.split('-').reverse().join('.')}`:'');
+
+  // Детальная таблица
+  const rows = pool.map(c=>`<tr>
+    <td>${c.id}</td><td>${c.name}</td><td>${c.vacancy}</td>
+    <td>${c.stage}</td><td>${c.status}</td>
+    <td>${c.added||''}</td>
+  </tr>`).join('');
+
+  document.getElementById('reportResult').innerHTML = `
+    <div class="section-title">Результат ${period ? '— '+period : ''} ${vac?'| '+vac:''}</div>
+    <div class="report-grid">
+      <div class="report-card blue"><div class="report-card-n">${total}</div><div class="report-card-l">Всего кандидатов</div></div>
+      <div class="report-card"><div class="report-card-n">${inWork}</div><div class="report-card-l">В работе</div></div>
+      <div class="report-card orange"><div class="report-card-n">${offer}</div><div class="report-card-l">Оффер</div></div>
+      <div class="report-card green"><div class="report-card-n">${training}</div><div class="report-card-l">Вышли на обучение</div></div>
+      <div class="report-card red"><div class="report-card-n">${refused}</div><div class="report-card-l">Всего отказов</div></div>
+      <div class="report-card red"><div class="report-card-n">${selfRefuse}</div><div class="report-card-l">Отказался сам</div></div>
+      <div class="report-card red"><div class="report-card-n">${noShow}</div><div class="report-card-l">Не вышел на собес</div></div>
+      <div class="report-card red"><div class="report-card-n">${compRefuse}</div><div class="report-card-l">Отказ компании</div></div>
+    </div>
+    ${total>0?`<div class="report-detail">
+      <table style="width:100%">
+        <thead><tr>
+          <th>ID</th><th>ФИО</th><th>Вакансия</th><th>Этап</th><th>Статус</th><th>Дата добавления</th>
+        </tr></thead>
+        <tbody>${rows}</tbody>
+      </table>
+    </div>`:'<div class="empty">Нет кандидатов по выбранным фильтрам</div>'}
+  `;
+}
+
+// ========== PDF ==========
+let pendingPdfName='';
 function loadPDFJS() {
   return new Promise((resolve,reject)=>{
     if(typeof pdfjsLib!=='undefined'){resolve();return;}
     const script=document.createElement('script');
     script.src='https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.min.js';
     script.onload=()=>{pdfjsLib.GlobalWorkerOptions.workerSrc='https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.worker.min.js';resolve();};
-    script.onerror=reject;
-    document.head.appendChild(script);
+    script.onerror=reject; document.head.appendChild(script);
   });
 }
-
 function extractFromPDFText(text) {
   const result={name:'',phone:''};
-  const nameMatch=text.substring(0,500).match(/([А-Я][а-я]+)\s+([А-Я][а-я]+)\s+([А-Я][а-я]+)/);
-  if(nameMatch) result.name=nameMatch[0];
-  const phoneRegex=/(?:\+7|8|7)[\s\-\(\)]*(\d{3})[\s\-\(\)]*(\d{3})[\s\-\(\)]*(\d{2})[\s\-\(\)]*(\d{2})/;
-  const match=text.match(phoneRegex);
-  if(match) result.phone='+7'+match[1]+match[2]+match[3]+match[4];
+  const nm=text.substring(0,500).match(/([А-Я][а-я]+)\s+([А-Я][а-я]+)\s+([А-Я][а-я]+)/);
+  if(nm) result.name=nm[0];
+  const pm=/(?:\+7|8|7)[\s\-\(\)]*(\d{3})[\s\-\(\)]*(\d{3})[\s\-\(\)]*(\d{2})[\s\-\(\)]*(\d{2})/;
+  const m=text.match(pm);
+  if(m) result.phone='+7'+m[1]+m[2]+m[3]+m[4];
   else{const sd=text.match(/\d{10}/);if(sd) result.phone='+7'+sd[0];}
   return result;
 }
-
 async function parsePDF(e) {
   const file=e.target.files[0]; if(!file) return;
   pendingPdfName=file.name;
@@ -520,26 +592,20 @@ async function parsePDF(e) {
   if(area) area.innerHTML='⏳ Читаю резюме...';
   try {
     await loadPDFJS();
-    const arrayBuffer=await file.arrayBuffer();
-    const pdf=await pdfjsLib.getDocument({data:arrayBuffer}).promise;
-    let fullText='';
-    for(let i=1;i<=pdf.numPages;i++){
-      const page=await pdf.getPage(i);
-      const tc=await page.getTextContent();
-      fullText+=tc.items.map(item=>item.str).join(' ')+' ';
-    }
-    const extracted=extractFromPDFText(fullText);
-    if(extracted.name){const fn=document.getElementById('fn');if(fn)fn.value=extracted.name;}
-    if(extracted.phone){const fp=document.getElementById('fphone');if(fp)fp.value=extracted.phone;}
+    const pdf=await pdfjsLib.getDocument({data:await file.arrayBuffer()}).promise;
+    let text='';
+    for(let i=1;i<=pdf.numPages;i++){const pg=await pdf.getPage(i);const tc=await pg.getTextContent();text+=tc.items.map(x=>x.str).join(' ')+' ';}
+    const ex=extractFromPDFText(text);
+    if(ex.name){const fn=document.getElementById('fn');if(fn)fn.value=ex.name;}
+    if(ex.phone){const fp=document.getElementById('fphone');if(fp)fp.value=ex.phone;}
     if(area){
-      if(extracted.phone){area.innerHTML='✅ Телефон загружен из резюме!';area.style.borderColor='#639922';area.style.background='#EAF3DE';area.style.color='#3B6D11';}
-      else{area.innerHTML='⚠️ Не удалось найти телефон. Заполните вручную.';area.style.borderColor='#F9A825';area.style.background='#FFF8E1';area.style.color='#E65100';}
+      if(ex.phone){area.innerHTML='✅ Телефон загружен!';area.style.borderColor='#639922';area.style.background='#EAF3DE';area.style.color='#3B6D11';}
+      else{area.innerHTML='⚠️ Телефон не найден. Заполните вручную.';area.style.borderColor='#F9A825';area.style.background='#FFF8E1';area.style.color='#E65100';}
     }
-  } catch(err){
-    if(area){area.innerHTML='⚠️ Ошибка чтения PDF. Заполните вручную.';area.style.borderColor='#E24B4A';area.style.color='#A32D2D';}
-  }
+  } catch(err){ if(area){area.innerHTML='⚠️ Ошибка PDF.';area.style.borderColor='#E24B4A';area.style.color='#A32D2D';} }
 }
 
+// ========== ДОБАВИТЬ / РЕДАКТИРОВАТЬ ==========
 function openAdd() {
   const id=nextId(); pendingPdfName='';
   modal(`<h2>➕ Новый кандидат</h2>
@@ -570,8 +636,8 @@ function openAdd() {
     </div>
     <div class="fr"><label>Время встречи</label><input type="time" id="fmt"></div>
     <div class="fr"><label>Комментарий</label><textarea id="fco"></textarea></div>
-    <div class="fr"><label>Ссылка на резюме (Google Doc)</label><input id="frl" placeholder="https://..."></div>
-    <div class="fr"><label>Ссылка на HH профиль</label><input id="fhh" placeholder="https://hh.ru/resume/..."></div>
+    <div class="fr"><label>Ссылка на резюме</label><input id="frl" placeholder="https://..."></div>
+    <div class="fr"><label>Ссылка на HH</label><input id="fhh" placeholder="https://hh.ru/resume/..."></div>
     <div class="mfoot">
       <button class="btn" onclick="closeModal()">Отмена</button>
       <button class="btn btn-primary" onclick="saveNew()">Добавить</button>
@@ -581,13 +647,11 @@ function openAdd() {
 function saveNew() {
   const name=document.getElementById('fn')?.value.trim();
   if(!name){alert('Введите ФИО');return;}
-  const phone=document.getElementById('fphone')?.value.trim()||'';
   D.candidates.push({
     id:document.getElementById('fi')?.value||nextId(),
     added:document.getElementById('fa')?.value||todayStr(),
-    name:name,
-    vacancy:document.getElementById('fv')?.value||'Менеджер по продажам',
-    contacts:phone,
+    name, vacancy:document.getElementById('fv')?.value||'Менеджер по продажам',
+    contacts:document.getElementById('fphone')?.value.trim()||'',
     source:document.getElementById('fs')?.value||'',
     stage:document.getElementById('fst')?.value||'Отклик',
     status:document.getElementById('fsts')?.value||'В работе',
@@ -600,16 +664,13 @@ function saveNew() {
     pdfName:pendingPdfName,
     refuseReason:document.getElementById('frr')?.value||''
   });
-  D.history.push({date:todayStr(),cid:D.candidates[D.candidates.length-1].id,name:name,vacancy:document.getElementById('fv')?.value||'',event:'Добавлен кандидат',desc:'',result:'',resp:'Я'});
-  saveData();
-  closeModal();
-  render();
+  D.history.push({date:todayStr(),cid:D.candidates[D.candidates.length-1].id,name,vacancy:document.getElementById('fv')?.value||'',event:'Добавлен кандидат',desc:'',result:'',resp:'Я'});
+  saveData(); closeModal(); render();
 }
 
 function openEdit(id) {
   const c=D.candidates.find(x=>x.id===id); if(!c) return;
-  let phone='';
-  if(c.contacts&&c.contacts.match(/[\d\+]/)) phone=c.contacts;
+  const phone=c.contacts&&c.contacts.match(/[\d\+]/)?c.contacts:'';
   modal(`<h2>✏️ ${c.name}</h2>
     <div class="f2">
       <div class="fr"><label>ID</label><input value="${c.id}" readonly></div>
@@ -625,7 +686,10 @@ function openEdit(id) {
       <div class="fr"><label>Этап</label><select id="fst">${sel(STAGES,c.stage)}</select></div>
       <div class="fr"><label>Статус</label><select id="fsts" onchange="toggleRefuse(this,'editRefuse')">${sel(STATUSES,c.status)}</select></div>
     </div>
-    <div class="fr" id="editRefuse" style="${INACTIVE.includes(c.status)?'':'display:none'}"><label>Причина отказа</label><select id="frr"><option value="">— выберите —</option>${REFUSE_REASONS.filter(x=>x).map(r=>`<option${r===c.refuseReason?' selected':''}>${r}</option>`).join('')}</select></div>
+    <div class="fr" id="editRefuse" style="${REFUSE_STATUSES.includes(c.status)?'':'display:none'}">
+      <label>Причина отказа</label>
+      <select id="frr"><option value="">— выберите —</option>${REFUSE_REASONS.filter(x=>x).map(r=>`<option${r===c.refuseReason?' selected':''}>${r}</option>`).join('')}</select>
+    </div>
     <div class="f2">
       <div class="fr"><label>Следующий шаг</label><input id="fnx" value="${c.next||''}"></div>
       <div class="fr"><label>Дата шага</label><input type="date" id="fnd" value="${c.nextDate||''}"></div>
@@ -642,12 +706,11 @@ function openEdit(id) {
 
 function saveEdit(id) {
   const c=D.candidates.find(x=>x.id===id); if(!c) return;
-  const phone=document.getElementById('fphone')?.value.trim()||'';
   c.added=document.getElementById('fa')?.value||c.added;
   c.name=document.getElementById('fn')?.value.trim()||c.name;
   c.vacancy=document.getElementById('fv')?.value||c.vacancy;
   c.source=document.getElementById('fs')?.value||'';
-  c.contacts=phone;
+  c.contacts=document.getElementById('fphone')?.value.trim()||'';
   c.stage=document.getElementById('fst')?.value||c.stage;
   c.status=document.getElementById('fsts')?.value||c.status;
   c.next=document.getElementById('fnx')?.value||'';
@@ -657,15 +720,13 @@ function saveEdit(id) {
   c.meetTime=document.getElementById('fmt')?.value||'';
   c.hhLink=document.getElementById('fhh')?.value||'';
   if(document.getElementById('frr')) c.refuseReason=document.getElementById('frr').value;
-  if(!INACTIVE.includes(c.status)) c.refuseReason='';
-  saveData();
-  closeModal();
-  render();
+  if(!REFUSE_STATUSES.includes(c.status)) c.refuseReason='';
+  saveData(); closeModal(); render();
 }
 
 function saveEditThenHist(id) {
   const c=D.candidates.find(x=>x.id===id);
-  if(c&&document.getElementById('fn')){
+  if(c){
     c.contacts=document.getElementById('fphone')?.value.trim()||'';
     c.stage=document.getElementById('fst')?.value||c.stage;
     c.status=document.getElementById('fsts')?.value||c.status;
@@ -692,36 +753,31 @@ function saveHist(id) {
   const c=D.candidates.find(x=>x.id===id); if(!c) return;
   D.history.push({
     date:document.getElementById('hd')?.value||todayStr(),
-    cid:c.id,name:c.name,vacancy:c.vacancy,
+    cid:c.id, name:c.name, vacancy:c.vacancy,
     event:document.getElementById('he')?.value||'',
     desc:document.getElementById('hds')?.value||'',
     result:document.getElementById('hr')?.value||'',
     resp:'Я'
   });
-  saveData();
-  closeModal();
-  render();
+  saveData(); closeModal(); render();
 }
 
 function importJSON(e) {
-  const file = e.target.files[0]; if(!file) return;
-  const reader = new FileReader();
-  reader.onload = function(ev) {
+  const file=e.target.files[0]; if(!file) return;
+  const reader=new FileReader();
+  reader.onload=function(ev){
     try {
-      const data = JSON.parse(ev.target.result);
-      if(data.candidates && Array.isArray(data.candidates)) D.candidates = data.candidates;
-      if(data.history && Array.isArray(data.history)) D.history = data.history;
-      saveLocal();
-      render();
-      syncToSheets();
-      alert('✅ Данные загружены и сохранены в таблицу!');
-    } catch(err) { alert('Ошибка: ' + err.message); }
+      const data=JSON.parse(ev.target.result);
+      if(data.candidates&&Array.isArray(data.candidates)) D.candidates=data.candidates.map(c=>({...c,status:normalizeStatus(c.status)}));
+      if(data.history&&Array.isArray(data.history)) D.history=data.history;
+      saveLocal(); render(); syncToSheets();
+      alert('✅ Данные загружены!');
+    } catch(err){alert('Ошибка: '+err.message);}
   };
   reader.readAsText(file);
-  e.target.value = '';
+  e.target.value='';
 }
 
-// Старт: загружаем из localStorage, потом сразу подтягиваем из таблицы
 loadLocal();
 render();
 loadFromSheets();
