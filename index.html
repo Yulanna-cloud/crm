@@ -74,7 +74,6 @@ tr:hover td{background:#e8f0fc}
 .sync-ok{background:#e8f5e9;color:#2e7d32}
 .sync-err{background:#ffebee;color:#c62828}
 .sync-loading{background:#fff8e1;color:#f57f17}
-/* Отчёт */
 .report-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:16px}
 .report-card{background:#f8f9ff;border:1px solid #c8d4e8;border-radius:8px;padding:14px;text-align:center}
 .report-card-n{font-size:32px;font-weight:700;color:#1F3864}
@@ -92,6 +91,8 @@ tr:hover td{background:#e8f0fc}
 .report-detail th{background:#e8ecf5;color:#1F3864;padding:7px 10px}
 .report-detail td{padding:6px 10px}
 .multiselect-dd{display:none;position:absolute;top:34px;left:0;background:#fff;border:1px solid #ccc;border-radius:8px;box-shadow:0 4px 16px rgba(0,0,0,0.12);z-index:100;min-width:230px;padding:8px 0}
+.filter-group{display:flex;gap:4px;align-items:center;background:#f5f5f5;padding:3px 8px;border-radius:16px;margin-right:5px}
+.filter-group span{font-size:12px;font-weight:600;color:#555}
 </style>
 </head>
 <body>
@@ -121,7 +122,7 @@ tr:hover td{background:#e8f0fc}
       </div>
     </div>
     <div style="position:relative;display:inline-block">
-      <button class="btn" onclick="toggleDD('statusDD')" id="statusBtnLabel" style="min-width:120px;text-align:left">Все статусы ▾</button>
+      <button class="btn" onclick="toggleDD('statusDD')" id="statusBtnLabel" style="min-width:150px;text-align:left">Все статусы ▾</button>
       <div id="statusDD" class="multiselect-dd">
         <label style="display:flex;align-items:center;gap:8px;padding:6px 14px;cursor:pointer;font-size:13px"><input type="checkbox" value="В работе" onchange="applyStatusFilter()"> В работе</label>
         <label style="display:flex;align-items:center;gap:8px;padding:6px 14px;cursor:pointer;font-size:13px"><input type="checkbox" value="Перенос собеседования" onchange="applyStatusFilter()"> Перенос собеседования</label>
@@ -149,7 +150,7 @@ tr:hover td{background:#e8f0fc}
 </div>
 <div id="tc">
   <div class="tbl-wrap">
-    <table><thead><tr id="thead-row"></tr></thead><tbody id="tb"></tbody></table>
+    <tr><thead><tr id="thead-row"></tr></thead><tbody id="tb"></tbody></table>
   </div>
 </div>
 <div id="th" style="display:none">
@@ -200,7 +201,6 @@ function loadFromSheets() {
   document.head.appendChild(script);
 }
 
-// Нормализация старых статусов при загрузке
 function normalizeStatus(s) {
   if (!s) return s;
   if (s === 'Отказался сам' || s === 'Отказалась сама') return 'Отказался сам (кандидат)';
@@ -215,6 +215,10 @@ const EVENTS = ['Добавлен кандидат', 'Интервью HR', 'И�
 const REFUSE_REASONS = ['', 'Слабая', 'Не пришла на интервью', 'Не подходит доход', 'Приняла другой оффер', 'Нерелевантный опыт', 'Другое'];
 const INACTIVE = ['Отказ', 'Отказался сам (кандидат)', 'Вышел', 'Не вышел на собеседование'];
 const REFUSE_STATUSES = ['Отказ', 'Отказался сам (кандидат)', 'Не вышел на собеседование'];
+const COMPANY_GROUPS = {
+  'Компания 1 (Далер)': ['РОП (Далер)', 'инженер-сметчик'],
+  'Компания 2 (Основная)': ['Менеджер по продажам', 'РОП', 'Project Manager']
+};
 
 let D = { candidates: [], history: [] };
 
@@ -304,43 +308,53 @@ function getChecked(ddId) { return [...document.querySelectorAll(`#${ddId} input
 
 function applyStageFilter() {
   const checked = getChecked('stageDD');
-  document.getElementById('stageBtnLabel').textContent = checked.length ? checked.join(', ')+' ▾' : 'Все этапы ▾';
+  const btn = document.getElementById('stageBtnLabel');
+  if (btn) btn.textContent = checked.length ? checked.join(', ')+' ▾' : 'Все этапы ▾';
   renderTable();
 }
 
 function applyStatusFilter() {
   const checked = getChecked('statusDD');
-  document.getElementById('statusBtnLabel').textContent = checked.length ? checked.join(', ')+' ▾' : 'Все статусы ▾';
+  const btn = document.getElementById('statusBtnLabel');
+  if (btn) btn.textContent = checked.length ? checked.join(', ')+' ▾' : 'Все статусы ▾';
   renderTable();
 }
 
 function clearStageFilter() {
   document.querySelectorAll('#stageDD input').forEach(x=>x.checked=false);
-  document.getElementById('stageBtnLabel').textContent = 'Все этапы ▾';
-  document.getElementById('stageDD').style.display='none';
+  const btn = document.getElementById('stageBtnLabel');
+  if (btn) btn.textContent = 'Все этапы ▾';
+  const dd = document.getElementById('stageDD');
+  if (dd) dd.style.display='none';
   renderTable();
 }
 
 function clearStatusFilter() {
   document.querySelectorAll('#statusDD input').forEach(x=>x.checked=false);
-  document.getElementById('statusBtnLabel').textContent = 'Все статусы ▾';
-  document.getElementById('statusDD').style.display='none';
+  const btn = document.getElementById('statusBtnLabel');
+  if (btn) btn.textContent = 'Все статусы ▾';
+  const dd = document.getElementById('statusDD');
+  if (dd) dd.style.display='none';
   renderTable();
 }
 
 function toggleDD(id) {
   const dd = document.getElementById(id);
-  ['stageDD','statusDD'].filter(x=>x!==id).forEach(x=>{ document.getElementById(x).style.display='none'; });
+  if (!dd) return;
+  ['stageDD','statusDD'].filter(x=>x!==id).forEach(x=>{ const el=document.getElementById(x); if(el) el.style.display='none'; });
   dd.style.display = dd.style.display==='none'?'block':'none';
 }
 
 document.addEventListener('click', function(e) {
-  if (!e.target.closest('#stageDD') && !e.target.closest('[onclick*="stageDD"]')) document.getElementById('stageDD').style.display='none';
-  if (!e.target.closest('#statusDD') && !e.target.closest('[onclick*="statusDD"]')) document.getElementById('statusDD').style.display='none';
+  if (!e.target.closest('#stageDD') && !e.target.closest('[onclick*="stageDD"]')) { const dd=document.getElementById('stageDD'); if(dd) dd.style.display='none'; }
+  if (!e.target.closest('#statusDD') && !e.target.closest('[onclick*="statusDD"]')) { const dd=document.getElementById('statusDD'); if(dd) dd.style.display='none'; }
+  if (e.target.closest('#rStageDD') || e.target.closest('#rStatusDD')) return;
+  if (!e.target.closest('#rStageDD') && !e.target.closest('[onclick*="rStageDD"]')) { const dd=document.getElementById('rStageDD'); if(dd) dd.style.display='none'; }
+  if (!e.target.closest('#rStatusDD') && !e.target.closest('[onclick*="rStatusDD"]')) { const dd=document.getElementById('rStatusDD'); if(dd) dd.style.display='none'; }
 });
 
-function setToday() { document.getElementById('fDate').value=todayStr(); renderTable(); }
-function clearDate() { document.getElementById('fDate').value=''; renderTable(); }
+function setToday() { const fd=document.getElementById('fDate'); if(fd) fd.value=todayStr(); renderTable(); }
+function clearDate() { const fd=document.getElementById('fDate'); if(fd) fd.value=''; renderTable(); }
 
 function renderStats() {
   const active = D.candidates.filter(x=>x.status==='В работе').length;
@@ -364,7 +378,8 @@ function renderHeaders() {
     {key:'',label:'Комментарий',width:'200px'},{key:'',label:'Резюме',width:'70px'},
     {key:'',label:'PDF/HH',width:'70px'},{key:'',label:'',width:'50px'}
   ];
-  document.getElementById('thead-row').innerHTML=cols.map(c=>
+  const theadRow=document.getElementById('thead-row');
+  if(theadRow) theadRow.innerHTML=cols.map(c=>
     `<th${c.key?` onclick="sortBy('${c.key}')"`:''} style="width:${c.width};padding:10px 12px;background:#1F3864;color:#fff;font-weight:700;border-bottom:2px solid #162a4a;white-space:nowrap${c.key?';cursor:pointer':''}">
       ${c.label}${c.key?arrow(c.key):''}
     </th>`).join('');
@@ -372,13 +387,14 @@ function renderHeaders() {
 
 function renderTable() {
   const tb=document.getElementById('tb');
+  if(!tb) return;
   renderHeaders();
-  const q=(document.getElementById('srch').value||'').toLowerCase();
-  const fv=document.getElementById('fV').value;
+  const q=(document.getElementById('srch')?.value||'').toLowerCase();
+  const fv=document.getElementById('fV')?.value||'';
   const stages=getChecked('stageDD');
   const statuses=getChecked('statusDD');
-  const activeOnly=document.getElementById('activeOnly').checked;
-  const fDate=document.getElementById('fDate').value;
+  const activeOnly=document.getElementById('activeOnly')?.checked||true;
+  const fDate=document.getElementById('fDate')?.value||'';
 
   let rows=D.candidates.filter(c=>{
     if(q && !c.name.toLowerCase().includes(q)) return false;
@@ -402,7 +418,7 @@ function renderTable() {
     return sortDir*av.localeCompare(bv,'ru');
   });
 
-  if(!rows.length){tb.innerHTML=`<tr><td colspan="14" class="empty">Нет кандидатов</td></tr>`;return;}
+  if(!rows.length){tb.innerHTML=`<td><td colspan="14" class="empty">Нет кандидатов</td></tr>`;return;}
   tb.innerHTML=rows.map(c=>{
     let phone='';
     if(c.contacts){for(let p of c.contacts.split(' / ')){if(p.match(/[\d\+]/)){phone=p;break;}}}
@@ -424,6 +440,7 @@ function renderTable() {
 
 function renderHistory() {
   const hb=document.getElementById('hb');
+  if(!hb) return;
   const items=[...D.history].reverse();
   if(!items.length){hb.innerHTML=`<div class="empty">История пуста</div>`;return;}
   hb.innerHTML=items.map(h=>`<div class="hist-item">
@@ -439,30 +456,39 @@ function render() { renderStats(); renderTable(); renderHistory(); }
 function switchTab(t, el) {
   document.querySelectorAll('.tab').forEach(x=>x.classList.remove('active'));
   el.classList.add('active');
-  document.getElementById('tc').style.display=t==='c'?'block':'none';
-  document.getElementById('th').style.display=t==='h'?'block':'none';
+  const tc=document.getElementById('tc'); const th=document.getElementById('th');
+  if(tc) tc.style.display=t==='c'?'block':'none';
+  if(th) th.style.display=t==='h'?'block':'none';
 }
 
 document.getElementById('srch')?.addEventListener('input', renderTable);
 document.getElementById('fV')?.addEventListener('input', renderTable);
 
-function closeModal() { document.getElementById('mdl').style.display='none'; }
+function closeModal() { const m=document.getElementById('mdl'); if(m) m.style.display='none'; }
 function modal(html, wide) {
   const m=document.getElementById('mdl');
+  if(!m) return;
   m.style.display='flex'; m.className='modal-bg';
   m.innerHTML=`<div class="modal${wide?' modal-wide':''}">${html}</div>`;
 }
 document.getElementById('mdl')?.addEventListener('click', function(e){if(e.target===this)closeModal();});
 
-// ========== ОТЧЁТ ==========
+// ========== ОТЧЁТ (ИСПРАВЛЕННЫЙ) ==========
 function openReport() {
   modal(`<h2>📊 Отчёт по кандидатам</h2>
     <div class="f3">
       <div class="fr"><label>Период от</label><input type="date" id="rFrom"></div>
       <div class="fr"><label>Период до</label><input type="date" id="rTo" value="${todayStr()}"></div>
-      <div class="fr"><label>Вакансия</label><select id="rVac"><option value="">Все</option>${VACANCIES.map(v=>`<option>${v}</option>`).join('')}</select></div>
+      <div class="fr"><label>Группа компаний</label><select id="rCompanyGroup"><option value="">Все компании</option><option value="company1">Компания 1 (Далер)</option><option value="company2">Компания 2 (Основная)</option></select></div>
     </div>
     <div class="f2">
+      <div class="fr" style="position:relative">
+        <label>Вакансии (можно несколько)</label>
+        <button class="btn" onclick="toggleDD('rVacDD')" id="rVacLbl" style="width:100%;text-align:left">Все вакансии ▾</button>
+        <div id="rVacDD" class="multiselect-dd">
+          ${VACANCIES.map(v=>`<label style="display:flex;align-items:center;gap:8px;padding:6px 14px;cursor:pointer;font-size:13px"><input type="checkbox" value="${v}" name="rVac"> ${v}</label>`).join('')}
+        </div>
+      </div>
       <div class="fr" style="position:relative">
         <label>Этапы (можно несколько)</label>
         <button class="btn" onclick="toggleDD('rStageDD')" id="rStageLbl" style="width:100%;text-align:left">Все этапы ▾</button>
@@ -475,7 +501,8 @@ function openReport() {
         <button class="btn" onclick="toggleDD('rStatusDD')" id="rStatusLbl" style="width:100%;text-align:left">Все статусы ▾</button>
         <div id="rStatusDD" class="multiselect-dd">
           ${STATUSES.map(s=>`<label style="display:flex;align-items:center;gap:8px;padding:6px 14px;cursor:pointer;font-size:13px"><input type="checkbox" value="${s}" name="rStatus"> ${s}</label>`).join('')}
-          <label style="display:flex;align-items:center;gap:8px;padding:6px 14px;cursor:pointer;font-size:13px"><input type="checkbox" value="__all_refuse__" name="rStatus"> Все отказы (вместе)</label>
+          <div style="border-top:1px solid #eee;margin:4px 0"></div>
+          <label style="display:flex;align-items:center;gap:8px;padding:6px 14px;cursor:pointer;font-size:13px"><input type="checkbox" value="__all_refuse__" name="rStatus"> 📌 Все отказы (вместе)</label>
         </div>
       </div>
     </div>
@@ -486,40 +513,55 @@ function openReport() {
     <div id="reportResult" style="margin-top:16px"></div>
   `, true);
 
-  // Синхронизируем чекбоксы этапов и статусов в модалке
+  // Обновление текста кнопок при выборе вакансий
+  document.querySelectorAll('[name=rVac]').forEach(cb=>{
+    cb.addEventListener('change', ()=>{
+      const checked=[...document.querySelectorAll('[name=rVac]:checked')].map(x=>x.value);
+      const lbl=document.getElementById('rVacLbl');
+      if(lbl) lbl.textContent=checked.length?checked.join(', ')+' ▾':'Все вакансии ▾';
+    });
+  });
   document.querySelectorAll('[name=rStage]').forEach(cb=>{
     cb.addEventListener('change', ()=>{
       const checked=[...document.querySelectorAll('[name=rStage]:checked')].map(x=>x.value);
-      document.getElementById('rStageLbl').textContent=checked.length?checked.join(', ')+' ▾':'Все этапы ▾';
+      const lbl=document.getElementById('rStageLbl');
+      if(lbl) lbl.textContent=checked.length?checked.join(', ')+' ▾':'Все этапы ▾';
     });
   });
   document.querySelectorAll('[name=rStatus]').forEach(cb=>{
     cb.addEventListener('change', ()=>{
       const checked=[...document.querySelectorAll('[name=rStatus]:checked')].map(x=>x.value);
-      document.getElementById('rStatusLbl').textContent=checked.length?checked.join(', ')+' ▾':'Все статусы ▾';
+      const lbl=document.getElementById('rStatusLbl');
+      if(lbl) lbl.textContent=checked.length?checked.join(', ')+' ▾':'Все статусы ▾';
     });
   });
 }
 
 function buildReport() {
-  const from = document.getElementById('rFrom').value;
-  const to = document.getElementById('rTo').value;
-  const vac = document.getElementById('rVac').value;
+  const from = document.getElementById('rFrom')?.value;
+  const to = document.getElementById('rTo')?.value;
+  const companyGroup = document.getElementById('rCompanyGroup')?.value;
+  const selVacs = [...document.querySelectorAll('[name=rVac]:checked')].map(x=>x.value);
   const selStages = [...document.querySelectorAll('[name=rStage]:checked')].map(x=>x.value);
-  const selStatuses = [...document.querySelectorAll('[name=rStatus]:checked')].map(x=>x.value);
+  const selStatusesRaw = [...document.querySelectorAll('[name=rStatus]:checked')].map(x=>x.value);
 
-  // Если выбрано "Все отказы вместе" — подставляем все статусы отказов
-  let effectiveStatuses = selStatuses;
-  if (selStatuses.includes('__all_refuse__')) {
-    effectiveStatuses = [...new Set([...selStatuses.filter(x=>x!=='__all_refuse__'), ...REFUSE_STATUSES])];
+  let effectiveStatuses = selStatusesRaw;
+  if (selStatusesRaw.includes('__all_refuse__')) {
+    effectiveStatuses = [...new Set([...selStatusesRaw.filter(x=>x!=='__all_refuse__'), ...REFUSE_STATUSES])];
   }
 
   let pool = D.candidates;
 
-  // Фильтр по дате добавления
   if (from) pool = pool.filter(c => c.added && c.added >= from);
-  if (to)   pool = pool.filter(c => c.added && c.added <= to);
-  if (vac)  pool = pool.filter(c => c.vacancy === vac);
+  if (to) pool = pool.filter(c => c.added && c.added <= to);
+  
+  if (companyGroup === 'company1') {
+    pool = pool.filter(c => COMPANY_GROUPS['Компания 1 (Далер)'].includes(c.vacancy));
+  } else if (companyGroup === 'company2') {
+    pool = pool.filter(c => COMPANY_GROUPS['Компания 2 (Основная)'].includes(c.vacancy));
+  }
+  
+  if (selVacs.length) pool = pool.filter(c => selVacs.includes(c.vacancy));
   if (selStages.length) pool = pool.filter(c => selStages.includes(c.stage));
   if (effectiveStatuses.length) pool = pool.filter(c => effectiveStatuses.includes(c.status));
 
@@ -530,22 +572,22 @@ function buildReport() {
   const compRefuse = pool.filter(c=>c.status==='Отказ').length;
   const training = pool.filter(c=>c.stage==='Обучение'||c.stage==='Выход').length;
   const offer = pool.filter(c=>c.stage==='Оффер'||c.status==='Оффер').length;
-  const inWork = pool.filter(c=>c.status==='В работе').length;
+  const inWork = pool.filter(c=>c.status==='В работе' || c.status==='Перенос собеседования').length;
 
   const period = (from?`с ${from.split('-').reverse().join('.')} `:'') + (to?`по ${to.split('-').reverse().join('.')}`:'');
 
-  // Детальная таблица
   const rows = pool.map(c=>`<tr>
     <td>${c.id}</td><td>${c.name}</td><td>${c.vacancy}</td>
     <td>${c.stage}</td><td>${c.status}</td>
     <td>${c.added||''}</td>
   </tr>`).join('');
 
-  document.getElementById('reportResult').innerHTML = `
-    <div class="section-title">Результат ${period ? '— '+period : ''} ${vac?'| '+vac:''}</div>
+  const resultDiv = document.getElementById('reportResult');
+  if(resultDiv) resultDiv.innerHTML = `
+    <div class="section-title">Результат ${period ? '— '+period : ''} ${companyGroup==='company1'?'| Компания 1 (Далер)':companyGroup==='company2'?'| Компания 2 (Основная)':''}</div>
     <div class="report-grid">
       <div class="report-card blue"><div class="report-card-n">${total}</div><div class="report-card-l">Всего кандидатов</div></div>
-      <div class="report-card"><div class="report-card-n">${inWork}</div><div class="report-card-l">В работе</div></div>
+      <div class="report-card"><div class="report-card-n">${inWork}</div><div class="report-card-l">В работе / Перенос</div></div>
       <div class="report-card orange"><div class="report-card-n">${offer}</div><div class="report-card-l">Оффер</div></div>
       <div class="report-card green"><div class="report-card-n">${training}</div><div class="report-card-l">Вышли на обучение</div></div>
       <div class="report-card red"><div class="report-card-n">${refused}</div><div class="report-card-l">Всего отказов</div></div>
@@ -555,11 +597,9 @@ function buildReport() {
     </div>
     ${total>0?`<div class="report-detail">
       <table style="width:100%">
-        <thead><tr>
-          <th>ID</th><th>ФИО</th><th>Вакансия</th><th>Этап</th><th>Статус</th><th>Дата добавления</th>
-        </tr></thead>
+        <thead><tr><th>ID</th><th>ФИО</th><th>Вакансия</th><th>Этап</th><th>Статус</th><th>Дата добавления</th></tr></thead>
         <tbody>${rows}</tbody>
-      </table>
+       </table>
     </div>`:'<div class="empty">Нет кандидатов по выбранным фильтрам</div>'}
   `;
 }
@@ -605,7 +645,6 @@ async function parsePDF(e) {
   } catch(err){ if(area){area.innerHTML='⚠️ Ошибка PDF.';area.style.borderColor='#E24B4A';area.style.color='#A32D2D';} }
 }
 
-// ========== ДОБАВИТЬ / РЕДАКТИРОВАТЬ ==========
 function openAdd() {
   const id=nextId(); pendingPdfName='';
   modal(`<h2>➕ Новый кандидат</h2>
