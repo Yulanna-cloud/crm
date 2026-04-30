@@ -346,33 +346,52 @@ function openReport(){
       <div class="fr"><label>Период от</label><input type="date" id="rFrom"></div>
       <div class="fr"><label>Период до</label><input type="date" id="rTo" value="${todayStr()}"></div>
     </div>
+
     <div class="fr">
-      <label>Вакансии (можно выбрать несколько)</label>
-      <div class="cb-group" id="rVacGroup">
-        <label><input type="checkbox" name="rVac" value="__all__" checked onchange="toggleAllVac(this)"> <b>Все вакансии</b></label>
-        <label style="background:#e3f2fd;border-radius:4px;margin:2px 0"><input type="checkbox" name="rVac" value="Менеджер по продажам" onchange="uncheckAllVac()"> Менеджер по продажам</label>
-        <label style="background:#e3f2fd;border-radius:4px;margin:2px 0"><input type="checkbox" name="rVac" value="РОП" onchange="uncheckAllVac()"> РОП</label>
-        <label style="background:#e3f2fd;border-radius:4px;margin:2px 0"><input type="checkbox" name="rVac" value="Project Manager" onchange="uncheckAllVac()"> Project Manager</label>
-        <label style="background:#e8f5e9;border-radius:4px;margin:2px 0"><input type="checkbox" name="rVac" value="РОП (Далер)" onchange="uncheckAllVac()"> РОП (Далер) — компания 2</label>
-        <label style="background:#e8f5e9;border-radius:4px;margin:2px 0"><input type="checkbox" name="rVac" value="инженер-сметчик" onchange="uncheckAllVac()"> инженер-сметчик — компания 2</label>
+      <label>Вакансии (можно несколько)</label>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:4px">
+        <label style="display:flex;align-items:center;gap:6px;padding:5px 10px;border:1px solid #ccc;border-radius:6px;cursor:pointer;font-size:13px;background:#f5f5f5">
+          <input type="checkbox" name="rVac" value="__all__" checked onchange="toggleAllVac(this)"> Все вакансии
+        </label>
+        <label style="display:flex;align-items:center;gap:6px;padding:5px 10px;border:1px solid #90caf9;border-radius:6px;cursor:pointer;font-size:13px;background:#e3f2fd">
+          <input type="checkbox" name="rVac" value="Менеджер по продажам" onchange="uncheckAllVac()"> Менеджер по продажам
+        </label>
+        <label style="display:flex;align-items:center;gap:6px;padding:5px 10px;border:1px solid #90caf9;border-radius:6px;cursor:pointer;font-size:13px;background:#e3f2fd">
+          <input type="checkbox" name="rVac" value="РОП" onchange="uncheckAllVac()"> РОП
+        </label>
+        <label style="display:flex;align-items:center;gap:6px;padding:5px 10px;border:1px solid #90caf9;border-radius:6px;cursor:pointer;font-size:13px;background:#e3f2fd">
+          <input type="checkbox" name="rVac" value="Project Manager" onchange="uncheckAllVac()"> Project Manager
+        </label>
+        <label style="display:flex;align-items:center;gap:6px;padding:5px 10px;border:1px solid #a5d6a7;border-radius:6px;cursor:pointer;font-size:13px;background:#e8f5e9">
+          <input type="checkbox" name="rVac" value="РОП (Далер)" onchange="uncheckAllVac()"> РОП (Далер) 🏢2
+        </label>
+        <label style="display:flex;align-items:center;gap:6px;padding:5px 10px;border:1px solid #a5d6a7;border-radius:6px;cursor:pointer;font-size:13px;background:#e8f5e9">
+          <input type="checkbox" name="rVac" value="инженер-сметчик" onchange="uncheckAllVac()"> инженер-сметчик 🏢2
+        </label>
       </div>
     </div>
+
     <div class="f2" style="margin-top:12px">
-      <div class="fr">
-        <label>Этапы (можно несколько, пусто = все)</label>
-        <div class="cb-group">
-          ${STAGES.map(s=>`<label><input type="checkbox" name="rStage" value="${s}"> ${s}</label>`).join('')}
+      <div class="fr" style="position:relative">
+        <label>Этапы (пусто = все)</label>
+        <button class="btn" style="width:100%;text-align:left;margin-top:4px" onclick="toggleRDD('rStageDD')" id="rStageLbl">Все этапы ▾</button>
+        <div id="rStageDD" style="display:none;position:absolute;top:62px;left:0;right:0;background:#fff;border:1px solid #ccc;border-radius:8px;box-shadow:0 4px 16px rgba(0,0,0,0.15);z-index:999;padding:8px 0">
+          ${STAGES.map(s=>`<label style="display:flex;align-items:center;gap:8px;padding:6px 14px;cursor:pointer;font-size:13px"><input type="checkbox" name="rStage" value="${s}" onchange="updateRLbl('rStage','rStageLbl','Все этапы')"> ${s}</label>`).join('')}
+          <div style="border-top:1px solid #eee;padding:4px 14px;margin-top:4px"><button class="btn btn-sm" onclick="clearRFilter('rStage','rStageLbl','Все этапы','rStageDD')">Сбросить</button></div>
         </div>
       </div>
-      <div class="fr">
-        <label>Статусы (можно несколько, пусто = все)</label>
-        <div class="cb-group">
-          ${STATUSES.map(s=>`<label><input type="checkbox" name="rStatus" value="${s}"> ${s}</label>`).join('')}
-          <label style="background:#ffebee;border-radius:4px"><input type="checkbox" name="rStatus" value="__all_refuse__"> <b>Все отказы вместе</b></label>
+      <div class="fr" style="position:relative">
+        <label>Статусы (пусто = все)</label>
+        <button class="btn" style="width:100%;text-align:left;margin-top:4px" onclick="toggleRDD('rStatusDD')" id="rStatusLbl">Все статусы ▾</button>
+        <div id="rStatusDD" style="display:none;position:absolute;top:62px;left:0;right:0;background:#fff;border:1px solid #ccc;border-radius:8px;box-shadow:0 4px 16px rgba(0,0,0,0.15);z-index:999;padding:8px 0">
+          ${STATUSES.map(s=>`<label style="display:flex;align-items:center;gap:8px;padding:6px 14px;cursor:pointer;font-size:13px"><input type="checkbox" name="rStatus" value="${s}" onchange="updateRLbl('rStatus','rStatusLbl','Все статусы')"> ${s}</label>`).join('')}
+          <label style="display:flex;align-items:center;gap:8px;padding:6px 14px;cursor:pointer;font-size:13px;background:#fff5f5"><input type="checkbox" name="rStatus" value="__all_refuse__" onchange="updateRLbl('rStatus','rStatusLbl','Все статусы')"> <b>🔴 Все отказы вместе</b></label>
+          <div style="border-top:1px solid #eee;padding:4px 14px;margin-top:4px"><button class="btn btn-sm" onclick="clearRFilter('rStatus','rStatusLbl','Все статусы','rStatusDD')">Сбросить</button></div>
         </div>
       </div>
     </div>
-    <div class="mfoot" style="justify-content:space-between">
+
+    <div class="mfoot" style="justify-content:space-between;margin-top:20px">
       <button class="btn" onclick="closeModal()">Закрыть</button>
       <button class="btn btn-primary" onclick="buildReport()">Сформировать отчёт</button>
     </div>
@@ -380,11 +399,28 @@ function openReport(){
   `, true);
 }
 
+function toggleRDD(id){
+  ['rStageDD','rStatusDD'].filter(x=>x!==id).forEach(x=>{const el=document.getElementById(x);if(el)el.style.display='none';});
+  const dd=document.getElementById(id);
+  dd.style.display=dd.style.display==='none'?'block':'none';
+}
+function updateRLbl(name,lblId,defaultText){
+  const checked=[...document.querySelectorAll(`[name=${name}]:checked`)].map(x=>x.value).filter(x=>x!=='__all_refuse__');
+  const hasRefuse=document.querySelector(`[name=${name}][value="__all_refuse__"]`)?.checked;
+  const parts=[...checked,(hasRefuse?'Все отказы':'')].filter(Boolean);
+  document.getElementById(lblId).textContent=parts.length?parts.join(', ')+' ▾':defaultText+' ▾';
+}
+function clearRFilter(name,lblId,defaultText,ddId){
+  document.querySelectorAll(`[name=${name}]`).forEach(x=>x.checked=false);
+  document.getElementById(lblId).textContent=defaultText+' ▾';
+  document.getElementById(ddId).style.display='none';
+}
 function toggleAllVac(cb){
   if(cb.checked) document.querySelectorAll('[name=rVac]').forEach(x=>{if(x.value!=='__all__')x.checked=false;});
 }
 function uncheckAllVac(){
-  document.querySelector('[name=rVac][value="__all__"]').checked=false;
+  const allCb=document.querySelector('[name=rVac][value="__all__"]');
+  if(allCb) allCb.checked=false;
 }
 
 function buildReport(){
