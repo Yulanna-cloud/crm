@@ -415,7 +415,10 @@ function openReport(){
     </div>
     <div class="mfoot" style="justify-content:space-between;margin-top:16px">
       <button class="btn" onclick="closeModal()">Закрыть</button>
-      <button class="btn btn-primary" onclick="buildReport()">Сформировать отчёт</button>
+      <div style="display:flex;gap:8px">
+        <button class="btn" style="background:#fff8e1;border-color:#f9a825;color:#e65100;font-weight:600" onclick="buildFunnel()">📈 Воронка</button>
+        <button class="btn btn-primary" onclick="buildReport()">Сформировать отчёт</button>
+      </div>
     </div>
     <div id="reportResult" style="margin-top:16px"></div>
   `, true);
@@ -495,6 +498,77 @@ function buildReport(){
     </div>
     ${total>0?`<div class="report-detail"><table><thead><tr><th>ID</th><th>ФИО</th><th>Вакансия</th><th>Этап</th><th>Статус</th><th>Дата добавления</th></tr></thead><tbody>${tableRows}</tbody></table></div>`:'<div class="empty">Нет кандидатов по выбранным фильтрам</div>'}
   `;
+}
+
+function buildFunnel(){
+  const from=document.getElementById('rFrom').value;
+  const to=document.getElementById('rTo').value;
+  const selVacs=[...document.querySelectorAll('[name=rVac]:checked')].map(x=>x.value);
+  const allVac=selVacs.includes('__all__')||selVacs.length===0;
+  let pool=D.candidates;
+  if(from) pool=pool.filter(c=>c.added&&c.added>=from);
+  if(to)   pool=pool.filter(c=>c.added&&c.added<=to);
+  if(!allVac) pool=pool.filter(c=>selVacs.filter(x=>x!=='__all__').includes(c.vacancy));
+  const period=(from?`с ${from.split('-').reverse().join('.')} `:'')+(to?`по ${to.split('-').reverse().join('.')}` :'');
+  const vacLabel=allVac?'Все вакансии':selVacs.filter(x=>x!=='__all__').join(', ');
+  const total=pool.length;
+  const hrStages=['Интервью HR','Интервью с руководителем','Финал','Оффер','Обучение','Выход'];
+  const hrAssigned=pool.filter(c=>hrStages.includes(c.stage)).length;
+  const hrNoShow=pool.filter(c=>c.stage==='Интервью HR'&&c.status==='Не вышел на собеседование').length;
+  const hrDone=hrAssigned-hrNoShow;
+  const ropStages=['Интервью с руководителем','Финал','Оффер','Обучение','Выход'];
+  const ropAssigned=pool.filter(c=>ropStages.includes(c.stage)).length;
+  const ropNoShow=pool.filter(c=>c.stage==='Интервью с руководителем'&&c.status==='Не вышел на собеседование').length;
+  const ropDone=ropAssigned-ropNoShow;
+  const finalAssigned=pool.filter(c=>['Финал','Оффер','Обучение','Выход'].includes(c.stage)).length;
+  const finalNoShow=pool.filter(c=>c.stage==='Финал'&&c.status==='Не вышел на собеседование').length;
+  const finalDone=finalAssigned-finalNoShow;
+  const offerAssigned=pool.filter(c=>['Оффер','Обучение','Выход'].includes(c.stage)).length;
+  const offerAccepted=pool.filter(c=>['Обучение','Выход'].includes(c.stage)).length;
+  const trainAssigned=pool.filter(c=>['Обучение','Выход'].includes(c.stage)).length;
+  const trainDone=pool.filter(c=>c.stage==='Выход').length;
+  const totalRefuse=pool.filter(c=>REFUSE_STATUSES.includes(c.status)).length;
+  function pct(a,b){return b>0?Math.round(a/b*100)+'%':'—';}
+  function fRow(icon,label,assigned,done,base){
+    return `<tr style="border-bottom:1px solid #e8ecf0">
+      <td style="padding:11px 14px;font-weight:600;font-size:14px">${icon} ${label}</td>
+      <td style="padding:11px 14px;text-align:center;font-size:20px;font-weight:700;color:#1F3864">${assigned}</td>
+      <td style="padding:11px 14px;text-align:center;font-size:13px;color:#888">${pct(assigned,base)}</td>
+      <td style="padding:11px 14px;text-align:center;font-size:20px;font-weight:700;color:#2e7d32">${done}</td>
+      <td style="padding:11px 14px;text-align:center;font-size:13px;color:#888">${pct(done,assigned)}</td>
+    </tr>`;
+  }
+  document.getElementById('reportResult').innerHTML=`
+    <div class="section-title" style="margin-top:0">📈 Воронка найма ${period?'— '+period:''} | ${vacLabel}</div>
+    <div style="background:#fff;border:1px solid #c8d4e8;border-radius:8px;overflow:hidden;margin-bottom:12px">
+      <table style="width:100%;border-collapse:collapse;font-size:13px">
+        <thead><tr style="background:#1F3864;color:#fff">
+          <th style="padding:10px 14px;text-align:left">Этап</th>
+          <th style="padding:10px 14px;text-align:center">Назначено</th>
+          <th style="padding:10px 14px;text-align:center">% от откликов</th>
+          <th style="padding:10px 14px;text-align:center">Дошли</th>
+          <th style="padding:10px 14px;text-align:center">% дошедших</th>
+        </tr></thead>
+        <tbody>
+          <tr style="background:#e3f2fd;border-bottom:1px solid #e8ecf0">
+            <td style="padding:11px 14px;font-weight:700;font-size:14px">📥 Отклики</td>
+            <td style="padding:11px 14px;text-align:center;font-size:22px;font-weight:700;color:#1F3864" colspan="2">${total}</td>
+            <td style="padding:11px 14px;text-align:center;font-size:22px;font-weight:700;color:#1F3864">${total}</td>
+            <td style="padding:11px 14px;text-align:center;color:#888">100%</td>
+          </tr>
+          ${fRow('🗣️','Интервью HR (со мной)',hrAssigned,hrDone,total)}
+          ${fRow('👔','Интервью с РОП',ropAssigned,ropDone,total)}
+          ${fRow('🏁','Финал',finalAssigned,finalDone,total)}
+          ${fRow('📄','Оффер',offerAssigned,offerAccepted,total)}
+          ${fRow('🎓','Обучение / Выход на работу',trainAssigned,trainDone,total)}
+        </tbody>
+      </table>
+    </div>
+    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px">
+      <div class="report-card red"><div class="report-card-n">${totalRefuse}</div><div class="report-card-l">Всего отказов</div></div>
+      <div class="report-card red"><div class="report-card-n">${hrNoShow+ropNoShow}</div><div class="report-card-l">Не вышли на собес</div></div>
+      <div class="report-card green"><div class="report-card-n">${trainDone}</div><div class="report-card-l">Вышли на работу ✅</div></div>
+    </div>`;
 }
 
 // ========== PDF ==========
