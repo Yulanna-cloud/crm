@@ -115,14 +115,16 @@ tr:hover td{background:#e8f0fc}
     <div class="dd-wrap">
       <button class="btn" onclick="toggleDD('stageDD')" id="stageBtnLabel" style="min-width:120px;text-align:left">Все этапы ▾</button>
       <div id="stageDD" class="dd-menu">
-        <label><input type="checkbox" value="Интервью HR" onchange="applyStageFilter()"> Интервью HR</label>
-        <label><input type="checkbox" value="Интервью с руководителем" onchange="applyStageFilter()"> Интервью с руководителем</label>
         <label><input type="checkbox" value="Отклик" onchange="applyStageFilter()"> Отклик</label>
+        <label><input type="checkbox" value="Интервью HR — назначено" onchange="applyStageFilter()"> Интервью HR — назначено</label>
+        <label><input type="checkbox" value="Интервью HR — проведено" onchange="applyStageFilter()"> Интервью HR — проведено</label>
+        <label><input type="checkbox" value="Интервью с РОП — назначено" onchange="applyStageFilter()"> Интервью с РОП — назначено</label>
+        <label><input type="checkbox" value="Интервью с РОП — проведено" onchange="applyStageFilter()"> Интервью с РОП — проведено</label>
         <label><input type="checkbox" value="Финал" onchange="applyStageFilter()"> Финал</label>
         <label><input type="checkbox" value="Оффер" onchange="applyStageFilter()"> Оффер</label>
         <label><input type="checkbox" value="Обучение" onchange="applyStageFilter()"> Обучение</label>
-        <label><input type="checkbox" value="Выход" onchange="applyStageFilter()"> Выход</label>
-        <div style="border-top:1px solid #eee;margin:4px 0;padding:4px 14px"><button class="btn btn-sm" onclick="clearStageFilter()">Сбросить</button></div>
+        <label><input type="checkbox" value="Работает" onchange="applyStageFilter()"> Работает</label>
+        <div style="border-top:1px solid #eee;padding:4px 14px;margin-top:2px"><button class="btn btn-sm" onclick="clearStageFilter()">Сбросить</button></div>
       </div>
     </div>
     <div class="dd-wrap">
@@ -194,13 +196,34 @@ function normalizeStatus(s) {
   return s;
 }
 
-const STAGES=['Отклик','Интервью HR','Интервью с руководителем','Финал','Оффер','Обучение','Выход'];
-const STATUSES=['В работе','Перенос собеседования','Отказался сам (кандидат)','Отказ','Оффер','Вышел','Не вышел на собеседование','Собеседование с РОП'];
+const STAGES=[
+  'Отклик',
+  'Интервью HR — назначено',
+  'Интервью HR — проведено',
+  'Интервью с РОП — назначено',
+  'Интервью с РОП — проведено',
+  'Финал',
+  'Оффер',
+  'Обучение',
+  'Работает',
+  // Старые этапы (для совместимости)
+  'Интервью HR','Интервью с руководителем','Выход'
+];
+const STATUSES=['В работе','Перенос собеседования','Отказался сам (кандидат)','Отказ','Оффер','Вышел','Не вышел на собеседование'];
 const VACANCIES=['Менеджер по продажам','РОП (Далер)','инженер-сметчик','РОП','Project Manager'];
 const EVENTS=['Добавлен кандидат','Интервью HR','Интервью с руководителем','Тестовое задание','Оффер отправлен','Оффер принят','Отказался сам (кандидат)','Отказ компании','Выход на работу'];
 const REFUSE_REASONS=['','Слабая','Не пришла на интервью','Не подходит доход','Приняла другой оффер','Нерелевантный опыт','Другое'];
 const INACTIVE=['Отказ','Отказался сам (кандидат)','Вышел','Не вышел на собеседование'];
 const REFUSE_STATUSES=['Отказ','Отказался сам (кандидат)','Не вышел на собеседование'];
+
+// Группы этапов для воронки
+const FUNNEL_HR_ASSIGNED=['Интервью HR — назначено','Интервью HR — проведено','Интервью с РОП — назначено','Интервью с РОП — проведено','Финал','Оффер','Обучение','Работает','Интервью HR','Интервью с руководителем','Выход'];
+const FUNNEL_HR_DONE=['Интервью HR — проведено','Интервью с РОП — назначено','Интервью с РОП — проведено','Финал','Оффер','Обучение','Работает','Выход'];
+const FUNNEL_ROP_ASSIGNED=['Интервью с РОП — назначено','Интервью с РОП — проведено','Финал','Оффер','Обучение','Работает','Интервью с руководителем','Выход'];
+const FUNNEL_ROP_DONE=['Интервью с РОП — проведено','Финал','Оффер','Обучение','Работает','Выход'];
+const FUNNEL_OFFER=['Оффер','Обучение','Работает','Выход'];
+const FUNNEL_TRAIN=['Обучение','Работает','Выход'];
+const FUNNEL_WORK=['Работает','Выход'];
 
 let D={candidates:[],history:[]};
 
@@ -512,21 +535,21 @@ function buildFunnel(){
   const period=(from?`с ${from.split('-').reverse().join('.')} `:'')+(to?`по ${to.split('-').reverse().join('.')}` :'');
   const vacLabel=allVac?'Все вакансии':selVacs.filter(x=>x!=='__all__').join(', ');
   const total=pool.length;
-  const hrStages=['Интервью HR','Интервью с руководителем','Финал','Оффер','Обучение','Выход'];
-  const hrAssigned=pool.filter(c=>hrStages.includes(c.stage)).length;
-  const hrNoShow=pool.filter(c=>c.stage==='Интервью HR'&&c.status==='Не вышел на собеседование').length;
-  const hrDone=hrAssigned-hrNoShow;
-  const ropStages=['Интервью с руководителем','Финал','Оффер','Обучение','Выход'];
-  const ropAssigned=pool.filter(c=>ropStages.includes(c.stage)).length;
-  const ropNoShow=pool.filter(c=>c.stage==='Интервью с руководителем'&&c.status==='Не вышел на собеседование').length;
-  const ropDone=ropAssigned-ropNoShow;
-  const finalAssigned=pool.filter(c=>['Финал','Оффер','Обучение','Выход'].includes(c.stage)).length;
-  const finalNoShow=pool.filter(c=>c.stage==='Финал'&&c.status==='Не вышел на собеседование').length;
-  const finalDone=finalAssigned-finalNoShow;
-  const offerAssigned=pool.filter(c=>['Оффер','Обучение','Выход'].includes(c.stage)).length;
-  const offerAccepted=pool.filter(c=>['Обучение','Выход'].includes(c.stage)).length;
-  const trainAssigned=pool.filter(c=>['Обучение','Выход'].includes(c.stage)).length;
-  const trainDone=pool.filter(c=>c.stage==='Выход').length;
+  // HR назначено — все кто дошёл до этапа HR и дальше
+  const hrAssigned=pool.filter(c=>FUNNEL_HR_ASSIGNED.includes(c.stage)).length;
+  // HR дошли — этап "проведено" или дальше, и без "не вышел" на HR
+  const hrNoShow=pool.filter(c=>['Интервью HR — назначено','Интервью HR'].includes(c.stage)&&c.status==='Не вышел на собеседование').length;
+  const hrDone=pool.filter(c=>FUNNEL_HR_DONE.includes(c.stage)).length;
+  // РОП назначено
+  const ropAssigned=pool.filter(c=>FUNNEL_ROP_ASSIGNED.includes(c.stage)).length;
+  const ropNoShow=pool.filter(c=>c.stage==='Интервью с РОП — назначено'&&c.status==='Не вышел на собеседование').length;
+  const ropDone=pool.filter(c=>FUNNEL_ROP_DONE.includes(c.stage)).length;
+  // Оффер
+  const offerAssigned=pool.filter(c=>FUNNEL_OFFER.includes(c.stage)).length;
+  const offerAccepted=pool.filter(c=>FUNNEL_TRAIN.includes(c.stage)).length;
+  // Обучение
+  const trainAssigned=pool.filter(c=>FUNNEL_TRAIN.includes(c.stage)).length;
+  const trainDone=pool.filter(c=>FUNNEL_WORK.includes(c.stage)).length;
   const totalRefuse=pool.filter(c=>REFUSE_STATUSES.includes(c.status)).length;
   function pct(a,b){return b>0?Math.round(a/b*100)+'%':'—';}
   function fRow(icon,label,assigned,done,base){
@@ -546,7 +569,7 @@ function buildFunnel(){
           <th style="padding:10px 14px;text-align:left">Этап</th>
           <th style="padding:10px 14px;text-align:center">Назначено</th>
           <th style="padding:10px 14px;text-align:center">% от откликов</th>
-          <th style="padding:10px 14px;text-align:center">Дошли</th>
+          <th style="padding:10px 14px;text-align:center">Дошли / Провели</th>
           <th style="padding:10px 14px;text-align:center">% дошедших</th>
         </tr></thead>
         <tbody>
@@ -556,11 +579,13 @@ function buildFunnel(){
             <td style="padding:11px 14px;text-align:center;font-size:22px;font-weight:700;color:#1F3864">${total}</td>
             <td style="padding:11px 14px;text-align:center;color:#888">100%</td>
           </tr>
-          ${fRow('🗣️','Интервью HR (со мной)',hrAssigned,hrDone,total)}
-          ${fRow('👔','Интервью с РОП',ropAssigned,ropDone,total)}
-          ${fRow('🏁','Финал',finalAssigned,finalDone,total)}
+          ${fRow('🗣️','Интервью HR — назначено',hrAssigned,hrDone,total)}
+          ${fRow('✅','Интервью HR — проведено',hrDone,ropAssigned,total)}
+          ${fRow('👔','Интервью с РОП — назначено',ropAssigned,ropDone,total)}
+          ${fRow('✅','Интервью с РОП — проведено',ropDone,offerAssigned,total)}
           ${fRow('📄','Оффер',offerAssigned,offerAccepted,total)}
-          ${fRow('🎓','Обучение / Выход на работу',trainAssigned,trainDone,total)}
+          ${fRow('🎓','Обучение — назначено',trainAssigned,trainDone,total)}
+          ${fRow('🏆','Вышел на работу',trainDone,trainDone,total)}
         </tbody>
       </table>
     </div>
