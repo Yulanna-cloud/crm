@@ -120,7 +120,6 @@ tr:hover td{background:#e8f0fc}
         <label><input type="checkbox" value="Интервью HR — проведено" onchange="applyStageFilter()"> Интервью HR — проведено</label>
         <label><input type="checkbox" value="Интервью с РОП — назначено" onchange="applyStageFilter()"> Интервью с РОП — назначено</label>
         <label><input type="checkbox" value="Интервью с РОП — проведено" onchange="applyStageFilter()"> Интервью с РОП — проведено</label>
-        <label><input type="checkbox" value="Финал" onchange="applyStageFilter()"> Финал</label>
         <label><input type="checkbox" value="Оффер" onchange="applyStageFilter()"> Оффер</label>
         <label><input type="checkbox" value="Обучение" onchange="applyStageFilter()"> Обучение</label>
         <label><input type="checkbox" value="Работает" onchange="applyStageFilter()"> Работает</label>
@@ -142,6 +141,7 @@ tr:hover td{background:#e8f0fc}
       </div>
     </div>
     <button class="btn btn-report" onclick="openReport()">📊 Отчёт</button>
+    <button class="btn" style="background:#f5f5f5;border-color:#999;color:#555;font-weight:600" onclick="archiveAllInactive()">🗄 Архив неакт.</button>
     <button class="btn btn-sync" onclick="syncToSheets()">☁️ Сохранить</button>
     <button class="btn btn-load" onclick="loadFromSheets()">🔄 Загрузить</button>
     <label class="btn" style="cursor:pointer;background:#fff3e0;border-color:#ff9800;color:#e65100;font-weight:600">📂 Импорт<input type="file" accept=".json" onchange="importJSON(event)" style="display:none"></label>
@@ -153,9 +153,11 @@ tr:hover td{background:#e8f0fc}
 <div class="tabs">
   <div class="tab active" onclick="switchTab('c',this)">Кандидаты</div>
   <div class="tab" onclick="switchTab('h',this)">История событий</div>
+  <div class="tab" onclick="switchTab('a',this)">🗄 Архив</div>
 </div>
 <div id="tc"><div class="tbl-wrap"><table><thead><tr id="thead-row"></tr></thead><tbody id="tb"></tbody></table></div></div>
 <div id="th" style="display:none"><div class="tbl-wrap"><div id="hb"></div></div></div>
+<div id="ta" style="display:none"><div class="tbl-wrap"><table><thead><tr id="athead-row"></tr></thead><tbody id="atb"></tbody></table></div></div>
 </div>
 <div id="mdl" style="display:none"></div>
 
@@ -202,21 +204,19 @@ const STAGES=[
   'Интервью HR — проведено',
   'Интервью с РОП — назначено',
   'Интервью с РОП — проведено',
-  'Финал',
   'Оффер',
   'Обучение',
   'Работает',
-  // Старые этапы (для совместимости)
-  'Интервью HR','Интервью с руководителем','Выход'
+  // Старые этапы (совместимость)
+  'Интервью HR','Интервью с руководителем','Выход','Финал'
 ];
 const STATUSES=['В работе','Перенос собеседования','Отказался сам (кандидат)','Отказ','Оффер','Вышел','Не вышел на собеседование'];
 const VACANCIES=['Менеджер по продажам','РОП (Далер)','инженер-сметчик','РОП','Project Manager'];
-const EVENTS=['Добавлен кандидат','Интервью HR','Интервью с руководителем','Тестовое задание','Оффер отправлен','Оффер принят','Отказался сам (кандидат)','Отказ компании','Выход на работу'];
-const REFUSE_REASONS=['','Слабая','Не пришла на интервью','Не подходит доход','Приняла другой оффер','Нерелевантный опыт','Другое'];
+const EVENTS=['Добавлен кандидат','Интервью HR — назначено','Интервью HR — проведено','Интервью с РОП — назначено','Интервью с РОП — проведено','Оффер отправлен','Оффер принят','Отказался сам (кандидат)','Отказ компании','Выход на работу'];
+const REFUSE_REASONS=['','Слабый','Не пришёл на интервью','Не подходит доход','Принял другой оффер','Нерелевантный опыт','Другое'];
 const INACTIVE=['Отказ','Отказался сам (кандидат)','Вышел','Не вышел на собеседование'];
 const REFUSE_STATUSES=['Отказ','Отказался сам (кандидат)','Не вышел на собеседование'];
 
-// Группы этапов для воронки
 const FUNNEL_HR_ASSIGNED=['Интервью HR — назначено','Интервью HR — проведено','Интервью с РОП — назначено','Интервью с РОП — проведено','Финал','Оффер','Обучение','Работает','Интервью HR','Интервью с руководителем','Выход'];
 const FUNNEL_HR_DONE=['Интервью HR — проведено','Интервью с РОП — назначено','Интервью с РОП — проведено','Финал','Оффер','Обучение','Работает','Выход'];
 const FUNNEL_ROP_ASSIGNED=['Интервью с РОП — назначено','Интервью с РОП — проведено','Финал','Оффер','Обучение','Работает','Интервью с руководителем','Выход'];
@@ -308,6 +308,7 @@ function renderTable(){
   const activeOnly=document.getElementById('activeOnly').checked;
   const fDate=document.getElementById('fDate').value;
   let rows=D.candidates.filter(c=>{
+    if(c.archived)return false;
     if(q&&!c.name.toLowerCase().includes(q))return false;
     if(fv&&c.vacancy!==fv)return false;
     if(stages.length&&!stages.includes(c.stage))return false;
@@ -354,8 +355,14 @@ function renderHistory(){
   </div>`).join('');
 }
 
-function render(){renderStats();renderTable();renderHistory();}
-function switchTab(t,el){document.querySelectorAll('.tab').forEach(x=>x.classList.remove('active'));el.classList.add('active');document.getElementById('tc').style.display=t==='c'?'block':'none';document.getElementById('th').style.display=t==='h'?'block':'none';}
+function render(){renderStats();renderTable();renderHistory();renderArchive();}
+function switchTab(t,el){
+  document.querySelectorAll('.tab').forEach(x=>x.classList.remove('active'));
+  el.classList.add('active');
+  document.getElementById('tc').style.display=t==='c'?'block':'none';
+  document.getElementById('th').style.display=t==='h'?'block':'none';
+  document.getElementById('ta').style.display=t==='a'?'block':'none';
+}
 document.getElementById('srch')?.addEventListener('input',renderTable);
 document.getElementById('fV')?.addEventListener('input',renderTable);
 function closeModal(){document.getElementById('mdl').style.display='none';}
@@ -559,11 +566,11 @@ function buildFunnel(){
     const map={
       'Отклик':0,
       'Интервью HR — назначено':1,
-      'Интервью HR':1,
       'Интервью HR — проведено':2,
+      'Интервью HR':2,
       'Интервью с РОП — назначено':3,
-      'Интервью с руководителем':3,
       'Интервью с РОП — проведено':4,
+      'Интервью с руководителем':4,
       'Финал':5,
       'Оффер':6,
       'Обучение':7,
@@ -683,9 +690,51 @@ function openEdit(id){
     <div class="fr"><label>Ссылка на резюме</label><input id="frl" value="${c.resumeLink||''}"></div>
     <div class="fr"><label>Ссылка на HH</label><input id="fhh" value="${c.hhLink||''}"></div>
     <div class="mfoot" style="justify-content:space-between">
-      <button class="btn" style="color:#A32D2D" onclick="saveEditThenHist('${id}')">📋 + Событие</button>
+      <div style="display:flex;gap:6px">
+        <button class="btn" style="color:#A32D2D" onclick="saveEditThenHist('${id}')">📋 + Событие</button>
+        <button class="btn" style="color:#888;font-size:12px" onclick="archiveCandidate('${id}')">🗄 В архив</button>
+      </div>
       <div><button class="btn" onclick="closeModal()">Отмена</button><button class="btn btn-primary" onclick="saveEdit('${id}')">Сохранить</button></div>
     </div>`);
+}
+
+function archiveCandidate(id){
+  const c=D.candidates.find(x=>x.id===id);
+  if(!c)return;
+  if(!confirm(`Архивировать ${c.name}? Кандидат пропадёт из основного списка, но останется в архиве и будет учитываться в воронке.`))return;
+  c.archived=true;
+  saveData();closeModal();render();
+}
+
+function unarchiveCandidate(id){
+  const c=D.candidates.find(x=>x.id===id);
+  if(!c)return;
+  c.archived=false;
+  saveData();render();
+}
+
+function archiveAllInactive(){
+  const count=D.candidates.filter(c=>!c.archived&&INACTIVE.includes(c.status)).length;
+  if(!count){alert('Нет неактивных кандидатов для архивирования.');return;}
+  if(!confirm(`Архивировать всех неактивных кандидатов (${count} чел.)? Они пропадут из основного списка.`))return;
+  D.candidates.forEach(c=>{if(!c.archived&&INACTIVE.includes(c.status))c.archived=true;});
+  saveData();render();
+}
+
+function renderArchive(){
+  const atb=document.getElementById('atb');
+  const athead=document.getElementById('athead-row');
+  if(!atb||!athead)return;
+  const archived=D.candidates.filter(c=>c.archived);
+  athead.innerHTML=`<th style="background:#1F3864;color:#fff;padding:10px 12px">ID</th><th style="background:#1F3864;color:#fff;padding:10px 12px">ФИО</th><th style="background:#1F3864;color:#fff;padding:10px 12px">Вакансия</th><th style="background:#1F3864;color:#fff;padding:10px 12px">Этап</th><th style="background:#1F3864;color:#fff;padding:10px 12px">Статус</th><th style="background:#1F3864;color:#fff;padding:10px 12px">Причина</th><th style="background:#1F3864;color:#fff;padding:10px 12px">Добавлен</th><th style="background:#1F3864;color:#fff;padding:10px 12px"></th>`;
+  if(!archived.length){atb.innerHTML=`<tr><td colspan="8" class="empty">Архив пуст</td></tr>`;return;}
+  atb.innerHTML=archived.map(c=>`<tr class="row-done">
+    <td>${c.id}</td><td><b>${c.name}</b></td><td>${c.vacancy}</td><td>${c.stage}</td>
+    <td>${sbadge(c.status)}</td>
+    <td>${c.refuseReason?`<span class="badge br">${c.refuseReason}</span>`:''}</td>
+    <td>${c.added||''}</td>
+    <td><button class="btn btn-sm" onclick="unarchiveCandidate('${c.id}')" title="Вернуть">↩️</button></td>
+  </tr>`).join('');
 }
 
 function saveEdit(id){
