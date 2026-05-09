@@ -63,7 +63,6 @@ tr:hover td{background:#e8f0fc}
 .fr input:focus,.fr select:focus,.fr textarea:focus{outline:none;border-color:#1F3864}
 .fr textarea{height:70px;resize:vertical;font-family:Arial,sans-serif}
 .f2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
-.f3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px}
 .mfoot{display:flex;justify-content:flex-end;gap:8px;margin-top:16px;padding-top:12px;border-top:1px solid #eee}
 .hist-item{padding:10px 14px;border-bottom:1px solid #f0f0f0;display:grid;grid-template-columns:90px 150px 1fr 60px;gap:10px;font-size:13px}
 .hist-item:last-child{border-bottom:none}
@@ -74,10 +73,13 @@ tr:hover td{background:#e8f0fc}
 .sync-ok{background:#e8f5e9;color:#2e7d32}
 .sync-err{background:#ffebee;color:#c62828}
 .sync-loading{background:#fff8e1;color:#f57f17}
-/* Отчёт */
-.report-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:16px}
+.dd-wrap{position:relative;display:inline-block}
+.dd-menu{display:none;position:absolute;top:34px;left:0;background:#fff;border:1px solid #ccc;border-radius:8px;box-shadow:0 4px 16px rgba(0,0,0,0.12);z-index:100;min-width:220px;padding:8px 0}
+.dd-menu label{display:flex;align-items:center;gap:8px;padding:6px 14px;cursor:pointer;font-size:13px}
+.dd-menu label:hover{background:#f5f5f5}
+.report-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:12px}
 .report-card{background:#f8f9ff;border:1px solid #c8d4e8;border-radius:8px;padding:12px;text-align:center}
-.report-card-n{font-size:28px;font-weight:700;color:#1F3864}
+.report-card-n{font-size:26px;font-weight:700;color:#1F3864}
 .report-card-l{font-size:11px;color:#555;margin-top:4px;font-weight:600}
 .report-card.green{background:#e8f5e9;border-color:#a5d6a7}.report-card.green .report-card-n{color:#2e7d32}
 .report-card.red{background:#ffebee;border-color:#ef9a9a}.report-card.red .report-card-n{color:#c62828}
@@ -87,16 +89,9 @@ tr:hover td{background:#e8f0fc}
 .report-detail table{font-size:12px;width:100%}
 .report-detail th{background:#e8ecf5;color:#1F3864;padding:7px 10px;text-align:left}
 .report-detail td{padding:6px 10px;border-bottom:1px solid #f0f0f0}
-/* Чекбокс-группа в отчёте */
-.cb-group{border:1px solid #ddd;border-radius:6px;padding:8px 10px;max-height:160px;overflow-y:auto;background:#fff}
-.cb-group label{display:flex;align-items:center;gap:8px;padding:4px 2px;cursor:pointer;font-size:13px;border-radius:4px}
-.cb-group label:hover{background:#f5f5f5}
-.cb-group input[type=checkbox]{width:15px;height:15px;accent-color:#1F3864;flex-shrink:0}
-/* Главный фильтр dropdown */
-.dd-wrap{position:relative;display:inline-block}
-.dd-menu{display:none;position:absolute;top:34px;left:0;background:#fff;border:1px solid #ccc;border-radius:8px;box-shadow:0 4px 16px rgba(0,0,0,0.12);z-index:100;min-width:220px;padding:8px 0}
-.dd-menu label{display:flex;align-items:center;gap:8px;padding:6px 14px;cursor:pointer;font-size:13px}
-.dd-menu label:hover{background:#f5f5f5}
+.rdd-row{display:flex;align-items:center;gap:8px;padding:5px 12px;cursor:pointer;font-size:13px}
+.rdd-row:hover{background:#f0f4ff}
+.rdd-row input{width:15px;height:15px;accent-color:#1F3864;flex-shrink:0}
 </style>
 </head>
 <body>
@@ -136,8 +131,7 @@ tr:hover td{background:#e8f0fc}
         <label><input type="checkbox" value="Оффер" onchange="applyStatusFilter()"> Оффер</label>
         <label><input type="checkbox" value="Вышел" onchange="applyStatusFilter()"> Вышел</label>
         <label><input type="checkbox" value="Не вышел на собеседование" onchange="applyStatusFilter()"> Не вышел на собеседование</label>
-        <label><input type="checkbox" value="Собеседование с РОП" onchange="applyStatusFilter()"> Собеседование с РОП</label>
-        <div style="border-top:1px solid #eee;margin:4px 0;padding:4px 14px"><button class="btn btn-sm" onclick="clearStatusFilter()">Сбросить</button></div>
+        <div style="border-top:1px solid #eee;padding:4px 14px;margin-top:2px"><button class="btn btn-sm" onclick="clearStatusFilter()">Сбросить</button></div>
       </div>
     </div>
     <button class="btn btn-report" onclick="openReport()">📊 Отчёт</button>
@@ -162,54 +156,44 @@ tr:hover td{background:#e8f0fc}
 <div id="mdl" style="display:none"></div>
 
 <script>
-const SHEETS_URL = 'https://script.google.com/macros/s/AKfycbz4bRHeOTKV9Be1sSiF2EYa1Q_n8h6kqIdGRLMYkYZwJ3-z6kraaB0L6rCvwPWaqD7S/exec';
+const SHEETS_URL='https://script.google.com/macros/s/AKfycbz4bRHeOTKV9Be1sSiF2EYa1Q_n8h6kqIdGRLMYkYZwJ3-z6kraaB0L6rCvwPWaqD7S/exec';
 
-function setSyncStatus(msg, type) {
-  const el = document.getElementById('syncStatus');
-  el.style.display='inline-block'; el.className='sync-status sync-'+type; el.textContent=msg;
-  if(type==='ok') setTimeout(()=>el.style.display='none', 3000);
+function setSyncStatus(msg,type){
+  const el=document.getElementById('syncStatus');
+  el.style.display='inline-block';el.className='sync-status sync-'+type;el.textContent=msg;
+  if(type==='ok')setTimeout(()=>el.style.display='none',3000);
 }
-function syncToSheets() {
+function syncToSheets(){
   setSyncStatus('⏳ Сохраняю...','loading');
   fetch(SHEETS_URL,{method:'POST',body:JSON.stringify({candidates:D.candidates,history:D.history})})
-    .then(r=>r.json()).then(res=>{ res&&res.ok?setSyncStatus('✅ Сохранено!','ok'):setSyncStatus('❌ Ошибка','err'); })
+    .then(r=>r.json()).then(res=>{res&&res.ok?setSyncStatus('✅ Сохранено!','ok'):setSyncStatus('❌ Ошибка','err');})
     .catch(()=>setSyncStatus('❌ Нет соединения','err'));
 }
-function loadFromSheets() {
+function loadFromSheets(){
   setSyncStatus('⏳ Загружаю...','loading');
-  const script=document.createElement('script'), cbName='cb_read_'+Date.now();
+  const script=document.createElement('script'),cbName='cb_read_'+Date.now();
   window[cbName]=function(res){
-    delete window[cbName]; document.head.removeChild(script);
+    delete window[cbName];document.head.removeChild(script);
     if(res&&res.ok&&res.data){
-      if(res.data.candidates) D.candidates=res.data.candidates.map(c=>({...c,status:normalizeStatus(c.status)}));
-      if(res.data.history) D.history=res.data.history;
-      saveLocal(); render(); setSyncStatus('✅ Загружено!','ok');
-    } else setSyncStatus('❌ Ошибка загрузки','err');
+      if(res.data.candidates)D.candidates=res.data.candidates.map(c=>({...c,status:normalizeStatus(c.status)}));
+      if(res.data.history)D.history=res.data.history;
+      saveLocal();render();setSyncStatus('✅ Загружено!','ok');
+    }else setSyncStatus('❌ Ошибка загрузки','err');
   };
   script.src=SHEETS_URL+'?action=read&callback='+cbName;
   script.onerror=()=>{delete window[cbName];setSyncStatus('❌ Нет соединения','err');};
   document.head.appendChild(script);
 }
 
-function normalizeStatus(s) {
-  if(!s) return s;
-  if(s==='Отказался сам'||s==='Отказалась сама') return 'Отказался сам (кандидат)';
-  if(s==='Не вышла на собес') return 'Не вышел на собеседование';
+function normalizeStatus(s){
+  if(!s)return s;
+  if(s==='Отказался сам'||s==='Отказалась сама')return 'Отказался сам (кандидат)';
+  if(s==='Не вышла на собес')return 'Не вышел на собеседование';
   return s;
 }
 
-const STAGES=[
-  'Отклик',
-  'Интервью HR — назначено',
-  'Интервью HR — проведено',
-  'Интервью с РОП — назначено',
-  'Интервью с РОП — проведено',
-  'Оффер',
-  'Обучение',
-  'Работает'
-];
-// Старые этапы только для совместимости (не показываются в списке)
-const STAGES_OLD=['Интервью HR','Интервью с руководителем','Выход','Финал'];
+// Этапы для выбора в карточке (новые)
+const STAGES=['Отклик','Интервью HR — назначено','Интервью HR — проведено','Интервью с РОП — назначено','Интервью с РОП — проведено','Оффер','Обучение','Работает'];
 const STATUSES=['В работе','Перенос собеседования','Отказался сам (кандидат)','Отказ','Оффер','Вышел','Не вышел на собеседование'];
 const VACANCIES=['Менеджер по продажам','РОП (Далер)','инженер-сметчик','РОП','Project Manager'];
 const EVENTS=['Добавлен кандидат','Интервью HR — назначено','Интервью HR — проведено','Интервью с РОП — назначено','Интервью с РОП — проведено','Оффер отправлен','Оффер принят','Отказался сам (кандидат)','Отказ компании','Выход на работу'];
@@ -217,13 +201,11 @@ const REFUSE_REASONS=['','Слабый','Не пришёл на интервью
 const INACTIVE=['Отказ','Отказался сам (кандидат)','Вышел','Не вышел на собеседование'];
 const REFUSE_STATUSES=['Отказ','Отказался сам (кандидат)','Не вышел на собеседование'];
 
-const FUNNEL_HR_ASSIGNED=['Интервью HR — назначено','Интервью HR — проведено','Интервью с РОП — назначено','Интервью с РОП — проведено','Финал','Оффер','Обучение','Работает','Интервью HR','Интервью с руководителем','Выход'];
-const FUNNEL_HR_DONE=['Интервью HR — проведено','Интервью с РОП — назначено','Интервью с РОП — проведено','Финал','Оффер','Обучение','Работает','Выход'];
-const FUNNEL_ROP_ASSIGNED=['Интервью с РОП — назначено','Интервью с РОП — проведено','Финал','Оффер','Обучение','Работает','Интервью с руководителем','Выход'];
-const FUNNEL_ROP_DONE=['Интервью с РОП — проведено','Финал','Оффер','Обучение','Работает','Выход'];
-const FUNNEL_OFFER=['Оффер','Обучение','Работает','Выход'];
-const FUNNEL_TRAIN=['Обучение','Работает','Выход'];
-const FUNNEL_WORK=['Работает','Выход'];
+// Уровень этапа в воронке (старые этапы тоже учитываются)
+function stageLevel(stage){
+  const map={'Отклик':0,'Интервью HR — назначено':1,'Интервью HR':2,'Интервью HR — проведено':2,'Интервью с РОП — назначено':3,'Интервью с руководителем':4,'Финал':4,'Интервью с РОП — проведено':4,'Оффер':5,'Обучение':6,'Работает':7,'Выход':7};
+  return map[stage]??0;
+}
 
 let D={candidates:[],history:[]};
 
@@ -244,10 +226,11 @@ function nextId(){if(!D.candidates.length)return 'K-001';const nums=D.candidates
 function sel(opts,val){return opts.map(o=>`<option${o===val?' selected':''}>${o}</option>`).join('');}
 function selStage(val){
   const opts=[...STAGES];
-  if(val&&!opts.includes(val))opts.push(val); // добавить старый этап если есть
+  if(val&&!opts.includes(val))opts.push(val);
   return opts.map(o=>`<option${o===val?' selected':''}>${o}</option>`).join('');
-}const d=document.getElementById(divId);if(d)d.style.display=['Отказ','Отказался сам (кандидат)'].includes(s.value)?'block':'none';}
-function sbadge(s){const m={'В работе':'bw','Перенос собеседования':'bpurple','Оффер':'bo','Вышел':'bout','Отказ':'br','Отказался сам (кандидат)':'brs','Не вышел на собеседование':'bnv','Собеседование с РОП':'brop'};return `<span class="badge ${m[s]||'bdef'}">${s}</span>`;}
+}
+function toggleRefuse(s,divId){const d=document.getElementById(divId);if(d)d.style.display=['Отказ','Отказался сам (кандидат)'].includes(s.value)?'block':'none';}
+function sbadge(s){const m={'В работе':'bw','Перенос собеседования':'bpurple','Оффер':'bo','Вышел':'bout','Отказ':'br','Отказался сам (кандидат)':'brs','Не вышел на собеседование':'bnv'};return `<span class="badge ${m[s]||'bdef'}">${s}</span>`;}
 function vacancyColorClass(v){if(v==='РОП (Далер)')return 'vac-daler';if(v==='инженер-сметчик')return 'vac-smetchik';return '';}
 function dlabel(ds){const d=parseDate(ds);if(!d)return '';const today=new Date();today.setHours(0,0,0,0);d.setHours(0,0,0,0);const diff=Math.round((d-today)/86400000);const cls=diff<0?'dr':diff===0?'dy':'dg';return `<span class="dot ${cls}"></span>${d.toLocaleDateString('ru-RU',{day:'2-digit',month:'2-digit'})}`;}
 function rclass(c){if(INACTIVE.includes(c.status))return 'row-done';if(!c.nextDate)return '';const d=parseDate(c.nextDate);if(!d)return '';const today=new Date();today.setHours(0,0,0,0);d.setHours(0,0,0,0);const diff=Math.round((d-today)/86400000);return diff<0?'row-overdue':diff===0?'row-today':'';}
@@ -257,39 +240,20 @@ function sortBy(col){sortCol===col?sortDir*=-1:(sortCol=col,sortDir=1);renderTab
 function arrow(col){return sortCol===col?(sortDir===1?' ↑':' ↓'):'';}
 function getChecked(ddId){return[...document.querySelectorAll(`#${ddId} input[type=checkbox]:checked`)].map(x=>x.value);}
 
-function applyStageFilter(){
-  const checked=getChecked('stageDD');
-  document.getElementById('stageBtnLabel').textContent=checked.length?checked.join(', ')+'  ▾':'Все этапы ▾';
-  renderTable();
-}
-function applyStatusFilter(){
-  const checked=getChecked('statusDD');
-  document.getElementById('statusBtnLabel').textContent=checked.length?checked.join(', ')+'  ▾':'Все статусы ▾';
-  renderTable();
-}
+function applyStageFilter(){const c=getChecked('stageDD');document.getElementById('stageBtnLabel').textContent=c.length?c.join(', ')+' ▾':'Все этапы ▾';renderTable();}
+function applyStatusFilter(){const c=getChecked('statusDD');document.getElementById('statusBtnLabel').textContent=c.length?c.join(', ')+' ▾':'Все статусы ▾';renderTable();}
 function clearStageFilter(){document.querySelectorAll('#stageDD input').forEach(x=>x.checked=false);document.getElementById('stageBtnLabel').textContent='Все этапы ▾';document.getElementById('stageDD').style.display='none';renderTable();}
 function clearStatusFilter(){document.querySelectorAll('#statusDD input').forEach(x=>x.checked=false);document.getElementById('statusBtnLabel').textContent='Все статусы ▾';document.getElementById('statusDD').style.display='none';renderTable();}
-
-function toggleDD(id){
-  ['stageDD','statusDD'].filter(x=>x!==id).forEach(x=>document.getElementById(x).style.display='none');
-  const dd=document.getElementById(id);
-  dd.style.display=dd.style.display==='none'?'block':'none';
-}
-document.addEventListener('click',function(e){
-  if(!e.target.closest('.dd-wrap')&&!e.target.closest('#stageDD')&&!e.target.closest('#statusDD')){
-    document.getElementById('stageDD').style.display='none';
-    document.getElementById('statusDD').style.display='none';
-  }
-});
-
+function toggleDD(id){['stageDD','statusDD'].filter(x=>x!==id).forEach(x=>document.getElementById(x).style.display='none');const dd=document.getElementById(id);dd.style.display=dd.style.display==='none'?'block':'none';}
+document.addEventListener('click',function(e){if(!e.target.closest('.dd-wrap')){document.getElementById('stageDD').style.display='none';document.getElementById('statusDD').style.display='none';}});
 function setToday(){document.getElementById('fDate').value=todayStr();renderTable();}
 function clearDate(){document.getElementById('fDate').value='';renderTable();}
 
 function renderStats(){
-  const active=D.candidates.filter(x=>x.status==='В работе').length;
-  const offers=D.candidates.filter(x=>x.status==='В работе'&&x.stage==='Оффер').length;
-  const tod=D.candidates.filter(x=>!INACTIVE.includes(x.status)&&isSameDay(x.nextDate)).length;
-  const ref=D.candidates.filter(x=>REFUSE_STATUSES.includes(x.status)).length;
+  const active=D.candidates.filter(x=>!x.archived&&x.status==='В работе').length;
+  const offers=D.candidates.filter(x=>!x.archived&&x.status==='В работе'&&x.stage==='Оффер').length;
+  const tod=D.candidates.filter(x=>!x.archived&&!INACTIVE.includes(x.status)&&isSameDay(x.nextDate)).length;
+  const ref=D.candidates.filter(x=>!x.archived&&REFUSE_STATUSES.includes(x.status)).length;
   document.getElementById('stats').innerHTML=`
     <div class="stat"><div class="stat-n">${active}</div><div class="stat-l">В работе</div></div>
     <div class="stat"><div class="stat-n">${offers}</div><div class="stat-l">На стадии оффера</div></div>
@@ -298,17 +262,15 @@ function renderStats(){
 }
 
 function renderHeaders(){
-  const cols=[{key:'id',label:'ID',w:'60px'},{key:'name',label:'ФИО',w:'180px'},{key:'vacancy',label:'Вакансия',w:'170px'},{key:'stage',label:'Этап',w:'130px'},{key:'status',label:'Статус',w:'165px'},{key:'',label:'Следующий шаг',w:'160px'},{key:'date',label:'Дата',w:'90px'},{key:'',label:'Время',w:'70px'},{key:'',label:'Телефон',w:'130px'},{key:'',label:'Причина отказа',w:'120px'},{key:'',label:'Комментарий',w:'200px'},{key:'',label:'Резюме',w:'70px'},{key:'',label:'PDF/HH',w:'70px'},{key:'',label:'',w:'50px'}];
-  document.getElementById('thead-row').innerHTML=cols.map(c=>`<th${c.key?` onclick="sortBy('${c.key}')"`:''} style="width:${c.w};padding:10px 12px;background:#1F3864;color:#fff;font-weight:700;border-bottom:2px solid #162a4a;white-space:nowrap${c.key?';cursor:pointer':''}">
-    ${c.label}${c.key?arrow(c.key):''}
-  </th>`).join('');
+  const cols=[{key:'id',label:'ID',w:'60px'},{key:'name',label:'ФИО',w:'180px'},{key:'vacancy',label:'Вакансия',w:'170px'},{key:'stage',label:'Этап',w:'170px'},{key:'status',label:'Статус',w:'165px'},{key:'',label:'Следующий шаг',w:'160px'},{key:'date',label:'Дата',w:'90px'},{key:'',label:'Время',w:'70px'},{key:'',label:'Телефон',w:'130px'},{key:'',label:'Причина отказа',w:'120px'},{key:'',label:'Комментарий',w:'200px'},{key:'',label:'Резюме',w:'70px'},{key:'',label:'HH',w:'70px'},{key:'',label:'',w:'50px'}];
+  document.getElementById('thead-row').innerHTML=cols.map(c=>`<th${c.key?` onclick="sortBy('${c.key}')"`:''} style="width:${c.w};padding:10px 12px;background:#1F3864;color:#fff;font-weight:700;border-bottom:2px solid #162a4a;white-space:nowrap${c.key?';cursor:pointer':''}">${c.label}${c.key?arrow(c.key):''}</th>`).join('');
 }
 
 function renderTable(){
-  const tb=document.getElementById('tb'); renderHeaders();
+  const tb=document.getElementById('tb');renderHeaders();
   const q=(document.getElementById('srch').value||'').toLowerCase();
   const fv=document.getElementById('fV').value;
-  const stages=getChecked('stageDD'); const statuses=getChecked('statusDD');
+  const stages=getChecked('stageDD');const statuses=getChecked('statusDD');
   const activeOnly=document.getElementById('activeOnly').checked;
   const fDate=document.getElementById('fDate').value;
   let rows=D.candidates.filter(c=>{
@@ -332,18 +294,11 @@ function renderTable(){
   tb.innerHTML=rows.map(c=>{
     let phone='';if(c.contacts){for(let p of c.contacts.split(' / ')){if(p.match(/[\d\+]/)){phone=p;break;}}}
     const resume=c.resumeLink?`<a href="${c.resumeLink}" target="_blank" style="color:#185FA5">Открыть</a>`:'—';
-    const hhOrPdf=c.hhLink?`<a href="${c.hhLink}" target="_blank" style="color:#d6001c">HH ↗</a>`:(c.pdfName?`📄 ${c.pdfName.length>15?c.pdfName.slice(0,13)+'…':c.pdfName}`:'—');
+    const hh=c.hhLink?`<a href="${c.hhLink}" target="_blank" style="color:#d6001c">HH ↗</a>`:'—';
     const refReason=REFUSE_STATUSES.includes(c.status)&&c.refuseReason?`<span class="badge br">${c.refuseReason}</span>`:'';
     const vacClass=vacancyColorClass(c.vacancy);
-    const vacancyHtml=vacClass?`<span class="${vacClass}">${c.vacancy}</span>`:c.vacancy;
-    return `<tr class="${rclass(c)}">
-      <td>${c.id}</td><td><b>${c.name}</b></td><td>${vacancyHtml}</td><td>${c.stage}</td>
-      <td>${sbadge(c.status)}</td><td>${c.next||'—'}</td><td>${dlabel(c.nextDate)}</td>
-      <td>${c.meetTime||''}</td><td>${phone||'—'}</td><td>${refReason}</td>
-      <td style="max-width:200px;white-space:normal">${c.comment||''}</td>
-      <td>${resume}</td><td>${hhOrPdf}</td>
-      <td><button class="btn btn-sm" onclick="openEdit('${c.id}')">✏️</button></td>
-    </tr>`;
+    const vacHtml=vacClass?`<span class="${vacClass}">${c.vacancy}</span>`:c.vacancy;
+    return `<tr class="${rclass(c)}"><td>${c.id}</td><td><b>${c.name}</b></td><td>${vacHtml}</td><td>${c.stage}</td><td>${sbadge(c.status)}</td><td>${c.next||'—'}</td><td>${dlabel(c.nextDate)}</td><td>${c.meetTime||''}</td><td>${phone||'—'}</td><td>${refReason}</td><td style="max-width:200px;white-space:normal">${c.comment||''}</td><td>${resume}</td><td>${hh}</td><td><button class="btn btn-sm" onclick="openEdit('${c.id}')">✏️</button></td></tr>`;
   }).join('');
 }
 
@@ -351,47 +306,51 @@ function renderHistory(){
   const hb=document.getElementById('hb');
   const items=[...D.history].reverse();
   if(!items.length){hb.innerHTML=`<div class="empty">История пуста</div>`;return;}
-  hb.innerHTML=items.map(h=>`<div class="hist-item">
-    <div>${h.date?new Date(h.date+'T12:00:00').toLocaleDateString('ru-RU'):''}</div>
-    <div><b>${h.name||''}</b><br><small>${h.cid||''}</small></div>
-    <div><b>${h.event||''}</b><br>${h.desc||''}${h.result?`<br><small>${h.result}</small>`:''}</div>
-    <div>${h.resp||''}</div>
-  </div>`).join('');
+  hb.innerHTML=items.map(h=>`<div class="hist-item"><div>${h.date?new Date(h.date+'T12:00:00').toLocaleDateString('ru-RU'):''}</div><div><b>${h.name||''}</b><br><small>${h.cid||''}</small></div><div><b>${h.event||''}</b><br>${h.desc||''}${h.result?`<br><small>${h.result}</small>`:''}</div><div>${h.resp||''}</div></div>`).join('');
+}
+
+function renderArchive(){
+  const atb=document.getElementById('atb');const athead=document.getElementById('athead-row');
+  if(!atb||!athead)return;
+  const archived=D.candidates.filter(c=>c.archived);
+  athead.innerHTML='<th style="background:#1F3864;color:#fff;padding:10px 12px">ID</th><th style="background:#1F3864;color:#fff;padding:10px 12px">ФИО</th><th style="background:#1F3864;color:#fff;padding:10px 12px">Вакансия</th><th style="background:#1F3864;color:#fff;padding:10px 12px">Этап</th><th style="background:#1F3864;color:#fff;padding:10px 12px">Статус</th><th style="background:#1F3864;color:#fff;padding:10px 12px">Причина</th><th style="background:#1F3864;color:#fff;padding:10px 12px">Добавлен</th><th style="background:#1F3864;color:#fff;padding:10px 12px"></th>';
+  if(!archived.length){atb.innerHTML=`<tr><td colspan="8" class="empty">Архив пуст</td></tr>`;return;}
+  atb.innerHTML=archived.map(c=>`<tr class="row-done"><td>${c.id}</td><td><b>${c.name}</b></td><td>${c.vacancy}</td><td>${c.stage}</td><td>${sbadge(c.status)}</td><td>${c.refuseReason?`<span class="badge br">${c.refuseReason}</span>`:''}</td><td>${c.added||''}</td><td><button class="btn btn-sm" onclick="unarchiveCandidate('${c.id}')" title="Вернуть">↩️</button></td></tr>`).join('');
 }
 
 function render(){renderStats();renderTable();renderHistory();renderArchive();}
 function switchTab(t,el){
-  document.querySelectorAll('.tab').forEach(x=>x.classList.remove('active'));
-  el.classList.add('active');
+  document.querySelectorAll('.tab').forEach(x=>x.classList.remove('active'));el.classList.add('active');
   document.getElementById('tc').style.display=t==='c'?'block':'none';
   document.getElementById('th').style.display=t==='h'?'block':'none';
   document.getElementById('ta').style.display=t==='a'?'block':'none';
 }
-document.getElementById('srch')?.addEventListener('input',renderTable);
-document.getElementById('fV')?.addEventListener('input',renderTable);
+document.getElementById('srch').addEventListener('input',renderTable);
+document.getElementById('fV').addEventListener('input',renderTable);
 function closeModal(){document.getElementById('mdl').style.display='none';}
 function modal(html,wide){const m=document.getElementById('mdl');m.style.display='flex';m.className='modal-bg';m.innerHTML=`<div class="modal${wide?' modal-wide':''}">${html}</div>`;}
-document.getElementById('mdl')?.addEventListener('click',function(e){if(e.target===this)closeModal();});
+document.getElementById('mdl').addEventListener('click',function(e){if(e.target===this)closeModal();});
 
-// ========== ОТЧЁТ ==========
-function rMultiSelect(id, lbl, opts, extraOpts=''){
-  const rows = opts.map(s=>`<label class="rdd-row"><input type="checkbox" name="${id}" value="${s}" onchange="rUpdateLbl('${id}','${lbl}')"> ${s}</label>`).join('');
-  return `<div class="fr">
-    <label>${lbl}</label>
-    <div style="border:1px solid #ddd;border-radius:6px;overflow:hidden;margin-top:4px">
-      <div style="max-height:160px;overflow-y:auto;padding:4px 0">
-        ${rows}${extraOpts}
-      </div>
-      <div style="border-top:1px solid #eee;padding:4px 10px;background:#fafafa">
-        <button class="btn btn-sm" onclick="rClear('${id}','${lbl}')">Сбросить</button>
-        <span id="${lbl}_lbl" style="font-size:11px;color:#888;margin-left:8px">Все</span>
-      </div>
-    </div>
-  </div>`;
+function archiveCandidate(id){
+  const c=D.candidates.find(x=>x.id===id);if(!c)return;
+  if(!confirm(`Архивировать ${c.name}?`))return;
+  c.archived=true;saveData();closeModal();render();
+}
+function unarchiveCandidate(id){
+  const c=D.candidates.find(x=>x.id===id);if(!c)return;
+  c.archived=false;saveData();render();
+}
+function archiveAllInactive(){
+  const count=D.candidates.filter(c=>!c.archived&&INACTIVE.includes(c.status)).length;
+  if(!count){alert('Нет неактивных кандидатов.');return;}
+  if(!confirm(`Архивировать всех неактивных (${count} чел.)?`))return;
+  D.candidates.forEach(c=>{if(!c.archived&&INACTIVE.includes(c.status))c.archived=true;});
+  saveData();render();
 }
 
+// ========== ОТЧЁТ ==========
 function openReport(){
-  const vacOpts = `
+  const vacOpts=`
     <label class="rdd-row" style="background:#f5f5f5;font-weight:600"><input type="checkbox" name="rVac" value="__all__" checked onchange="rVacAll(this)"> ✅ Все вакансии</label>
     <div style="font-size:10px;color:#888;padding:2px 12px;margin-top:4px">— Компания 1 —</div>
     <label class="rdd-row"><input type="checkbox" name="rVac" value="Менеджер по продажам" onchange="rVacOne()"> Менеджер по продажам</label>
@@ -400,50 +359,30 @@ function openReport(){
     <div style="font-size:10px;color:#888;padding:2px 12px;margin-top:4px">— Компания 2 —</div>
     <label class="rdd-row" style="background:#f0fff4"><input type="checkbox" name="rVac" value="РОП (Далер)" onchange="rVacOne()"> РОП (Далер)</label>
     <label class="rdd-row" style="background:#f0fff4"><input type="checkbox" name="rVac" value="инженер-сметчик" onchange="rVacOne()"> инженер-сметчик</label>`;
-
-  const stageOpts = STAGES.map(s=>`<label class="rdd-row"><input type="checkbox" name="rStage" value="${s}" onchange="rUpdateLbl('rStage','Этапы')"> ${s}</label>`).join('');
-  const statusOpts = STATUSES.map(s=>`<label class="rdd-row"><input type="checkbox" name="rStatus" value="${s}" onchange="rUpdateLbl('rStatus','Статусы')"> ${s}</label>`).join('')
-    + `<label class="rdd-row" style="background:#fff5f5;font-weight:600"><input type="checkbox" name="rStatus" value="__all_refuse__" onchange="rUpdateLbl('rStatus','Статусы')"> 🔴 Все отказы вместе</label>`;
-
+  const stageOpts=STAGES.map(s=>`<label class="rdd-row"><input type="checkbox" name="rStage" value="${s}" onchange="rUpdateLbl('rStage','rStage_lbl','Все этапы')"> ${s}</label>`).join('');
+  const statusOpts=STATUSES.map(s=>`<label class="rdd-row"><input type="checkbox" name="rStatus" value="${s}" onchange="rUpdateLbl('rStatus','rStatus_lbl','Все статусы')"> ${s}</label>`).join('')+`<label class="rdd-row" style="background:#fff5f5;font-weight:600"><input type="checkbox" name="rStatus" value="__all_refuse__" onchange="rUpdateLbl('rStatus','rStatus_lbl','Все статусы')"> 🔴 Все отказы вместе</label>`;
   modal(`<h2>📊 Отчёт по кандидатам</h2>
-    <style>
-      .rdd-row{display:flex;align-items:center;gap:8px;padding:5px 12px;cursor:pointer;font-size:13px}
-      .rdd-row:hover{background:#f0f4ff}
-      .rdd-row input{width:15px;height:15px;accent-color:#1F3864;flex-shrink:0}
-    </style>
     <div class="f2" style="margin-bottom:12px">
       <div class="fr"><label>Период от</label><input type="date" id="rFrom"></div>
       <div class="fr"><label>Период до</label><input type="date" id="rTo" value="${todayStr()}"></div>
     </div>
-    <div class="fr">
-      <label>Вакансии</label>
+    <div class="fr"><label>Вакансии</label>
       <div style="border:1px solid #ddd;border-radius:6px;overflow:hidden;margin-top:4px">
         <div style="max-height:180px;overflow-y:auto;padding:4px 0">${vacOpts}</div>
-        <div style="border-top:1px solid #eee;padding:4px 10px;background:#fafafa">
-          <button class="btn btn-sm" onclick="rVacReset()">Сбросить (все)</button>
-          <span id="rVac_lbl" style="font-size:11px;color:#888;margin-left:8px">Все</span>
-        </div>
+        <div style="border-top:1px solid #eee;padding:4px 10px;background:#fafafa"><button class="btn btn-sm" onclick="rVacReset()">Все</button> <span id="rVac_lbl" style="font-size:11px;color:#888;margin-left:6px">Все</span></div>
       </div>
     </div>
     <div class="f2" style="margin-top:10px">
-      <div class="fr">
-        <label>Этапы (пусто = все)</label>
+      <div class="fr"><label>Этапы (пусто = все)</label>
         <div style="border:1px solid #ddd;border-radius:6px;overflow:hidden;margin-top:4px">
           <div style="max-height:160px;overflow-y:auto;padding:4px 0">${stageOpts}</div>
-          <div style="border-top:1px solid #eee;padding:4px 10px;background:#fafafa">
-            <button class="btn btn-sm" onclick="rClear('rStage','Этапы')">Сбросить</button>
-            <span id="rStage_lbl" style="font-size:11px;color:#888;margin-left:8px">Все</span>
-          </div>
+          <div style="border-top:1px solid #eee;padding:4px 10px;background:#fafafa"><button class="btn btn-sm" onclick="rClear('rStage','rStage_lbl','Все этапы')">Сбросить</button> <span id="rStage_lbl" style="font-size:11px;color:#888;margin-left:6px">Все</span></div>
         </div>
       </div>
-      <div class="fr">
-        <label>Статусы (пусто = все)</label>
+      <div class="fr"><label>Статусы (пусто = все)</label>
         <div style="border:1px solid #ddd;border-radius:6px;overflow:hidden;margin-top:4px">
           <div style="max-height:160px;overflow-y:auto;padding:4px 0">${statusOpts}</div>
-          <div style="border-top:1px solid #eee;padding:4px 10px;background:#fafafa">
-            <button class="btn btn-sm" onclick="rClear('rStatus','Статусы')">Сбросить</button>
-            <span id="rStatus_lbl" style="font-size:11px;color:#888;margin-left:8px">Все</span>
-          </div>
+          <div style="border-top:1px solid #eee;padding:4px 10px;background:#fafafa"><button class="btn btn-sm" onclick="rClear('rStatus','rStatus_lbl','Все статусы')">Сбросить</button> <span id="rStatus_lbl" style="font-size:11px;color:#888;margin-left:6px">Все</span></div>
         </div>
       </div>
     </div>
@@ -454,165 +393,96 @@ function openReport(){
         <button class="btn btn-primary" onclick="buildReport()">Сформировать отчёт</button>
       </div>
     </div>
-    <div id="reportResult" style="margin-top:16px"></div>
-  `, true);
+    <div id="reportResult" style="margin-top:16px"></div>`,true);
 }
 
-function rUpdateLbl(name, lbl){
+function rUpdateLbl(name,lblId,def){
   const checked=[...document.querySelectorAll(`[name=${name}]:checked`)].map(x=>x.value).filter(x=>x!=='__all_refuse__');
-  const hasRefuse=document.querySelector(`[name=${name}][value="__all_refuse__"]`)?.checked;
-  const parts=[...checked,(hasRefuse?'Все отказы':'')].filter(Boolean);
-  const el=document.getElementById(name+'_lbl');
-  if(el) el.textContent=parts.length?parts.join(', '):'Все';
+  const hasRef=document.querySelector(`[name=${name}][value="__all_refuse__"]`)?.checked;
+  const parts=[...checked,(hasRef?'Все отказы':'')].filter(Boolean);
+  const el=document.getElementById(lblId);if(el)el.textContent=parts.length?parts.join(', '):def;
 }
-function rClear(name, lbl){
-  document.querySelectorAll(`[name=${name}]`).forEach(x=>x.checked=false);
-  const el=document.getElementById(name+'_lbl'); if(el) el.textContent='Все';
-}
-function rVacAll(cb){
-  if(cb.checked){document.querySelectorAll('[name=rVac]').forEach(x=>{if(x.value!=='__all__')x.checked=false;});}
-  const el=document.getElementById('rVac_lbl'); if(el) el.textContent='Все';
-}
-function rVacOne(){
-  const allCb=document.querySelector('[name=rVac][value="__all__"]'); if(allCb) allCb.checked=false;
-  const checked=[...document.querySelectorAll('[name=rVac]:checked')].map(x=>x.value).filter(x=>x!=='__all__');
-  const el=document.getElementById('rVac_lbl'); if(el) el.textContent=checked.length?checked.join(', '):'Все';
-}
-function rVacReset(){
-  document.querySelectorAll('[name=rVac]').forEach(x=>x.checked=false);
-  const allCb=document.querySelector('[name=rVac][value="__all__"]'); if(allCb) allCb.checked=true;
-  const el=document.getElementById('rVac_lbl'); if(el) el.textContent='Все';
-}
-function uncheckAllVac(){
-  const allCb=document.querySelector('[name=rVac][value="__all__"]');
-  if(allCb) allCb.checked=false;
-}
+function rClear(name,lblId,def){document.querySelectorAll(`[name=${name}]`).forEach(x=>x.checked=false);const el=document.getElementById(lblId);if(el)el.textContent=def;}
+function rVacAll(cb){if(cb.checked)document.querySelectorAll('[name=rVac]').forEach(x=>{if(x.value!=='__all__')x.checked=false;});const el=document.getElementById('rVac_lbl');if(el)el.textContent='Все';}
+function rVacOne(){const allCb=document.querySelector('[name=rVac][value="__all__"]');if(allCb)allCb.checked=false;const checked=[...document.querySelectorAll('[name=rVac]:checked')].map(x=>x.value).filter(x=>x!=='__all__');const el=document.getElementById('rVac_lbl');if(el)el.textContent=checked.length?checked.join(', '):'Все';}
+function rVacReset(){document.querySelectorAll('[name=rVac]').forEach(x=>x.checked=false);const allCb=document.querySelector('[name=rVac][value="__all__"]');if(allCb)allCb.checked=true;const el=document.getElementById('rVac_lbl');if(el)el.textContent='Все';}
 
-function buildReport(){
+function getReportPool(){
   const from=document.getElementById('rFrom').value;
   const to=document.getElementById('rTo').value;
   const selVacs=[...document.querySelectorAll('[name=rVac]:checked')].map(x=>x.value);
   const allVac=selVacs.includes('__all__')||selVacs.length===0;
+  let pool=D.candidates; // включая архивных для воронки
+  if(from)pool=pool.filter(c=>c.added&&c.added>=from);
+  if(to)pool=pool.filter(c=>c.added&&c.added<=to);
+  if(!allVac)pool=pool.filter(c=>selVacs.filter(x=>x!=='__all__').includes(c.vacancy));
+  return pool;
+}
+
+function buildReport(){
+  const pool=getReportPool();
   const selStages=[...document.querySelectorAll('[name=rStage]:checked')].map(x=>x.value);
   const selStatuses=[...document.querySelectorAll('[name=rStatus]:checked')].map(x=>x.value);
   let effectiveStatuses=selStatuses.filter(x=>x!=='__all_refuse__');
-  if(selStatuses.includes('__all_refuse__')) effectiveStatuses=[...new Set([...effectiveStatuses,...REFUSE_STATUSES])];
-
-  let pool=D.candidates;
-  if(from) pool=pool.filter(c=>c.added&&c.added>=from);
-  if(to)   pool=pool.filter(c=>c.added&&c.added<=to);
-  if(!allVac&&selVacs.length) pool=pool.filter(c=>selVacs.includes(c.vacancy));
-  if(selStages.length) pool=pool.filter(c=>selStages.includes(c.stage));
-  if(effectiveStatuses.length) pool=pool.filter(c=>effectiveStatuses.includes(c.status));
-
-  const total=pool.length;
-  const refused=pool.filter(c=>REFUSE_STATUSES.includes(c.status)).length;
-  const selfRefuse=pool.filter(c=>c.status==='Отказался сам (кандидат)').length;
-  const noShow=pool.filter(c=>c.status==='Не вышел на собеседование').length;
-  const compRefuse=pool.filter(c=>c.status==='Отказ').length;
-  const training=pool.filter(c=>c.stage==='Обучение'||c.stage==='Выход').length;
-  const offer=pool.filter(c=>c.stage==='Оффер'||c.status==='Оффер').length;
-  const inWork=pool.filter(c=>c.status==='В работе').length;
-
-  const period=(from?`с ${from.split('-').reverse().join('.')} `:'')+(to?`по ${to.split('-').reverse().join('.')}` :'');
-  const vacLabel=allVac?'Все вакансии':selVacs.filter(x=>x!=='__all__').join(', ');
-  const tableRows=pool.map(c=>`<tr><td>${c.id}</td><td>${c.name}</td><td>${c.vacancy}</td><td>${c.stage}</td><td>${c.status}</td><td>${c.added||''}</td></tr>`).join('');
-
+  if(selStatuses.includes('__all_refuse__'))effectiveStatuses=[...new Set([...effectiveStatuses,...REFUSE_STATUSES])];
+  let rows=pool;
+  if(selStages.length)rows=rows.filter(c=>selStages.includes(c.stage));
+  if(effectiveStatuses.length)rows=rows.filter(c=>effectiveStatuses.includes(c.status));
+  const total=rows.length;
+  const refused=rows.filter(c=>REFUSE_STATUSES.includes(c.status)).length;
+  const selfRefuse=rows.filter(c=>c.status==='Отказался сам (кандидат)').length;
+  const noShow=rows.filter(c=>c.status==='Не вышел на собеседование').length;
+  const compRefuse=rows.filter(c=>c.status==='Отказ').length;
+  const training=rows.filter(c=>['Обучение','Работает','Выход'].includes(c.stage)).length;
+  const offer=rows.filter(c=>['Оффер','Обучение','Работает','Выход'].includes(c.stage)).length;
+  const inWork=rows.filter(c=>c.status==='В работе').length;
+  const tableRows=rows.map(c=>`<tr><td>${c.id}</td><td>${c.name}</td><td>${c.vacancy}</td><td>${c.stage}</td><td>${c.status}</td><td>${c.added||''}</td></tr>`).join('');
   document.getElementById('reportResult').innerHTML=`
-    <div class="section-title" style="margin-top:0">Результат ${period?'— '+period:''} | ${vacLabel}</div>
+    <div class="section-title" style="margin-top:0">Результат</div>
     <div class="report-grid">
-      <div class="report-card blue"><div class="report-card-n">${total}</div><div class="report-card-l">Всего кандидатов</div></div>
+      <div class="report-card blue"><div class="report-card-n">${total}</div><div class="report-card-l">Всего</div></div>
       <div class="report-card"><div class="report-card-n">${inWork}</div><div class="report-card-l">В работе</div></div>
       <div class="report-card orange"><div class="report-card-n">${offer}</div><div class="report-card-l">Оффер</div></div>
-      <div class="report-card green"><div class="report-card-n">${training}</div><div class="report-card-l">Вышли на обучение</div></div>
+      <div class="report-card green"><div class="report-card-n">${training}</div><div class="report-card-l">На обучении</div></div>
       <div class="report-card red"><div class="report-card-n">${refused}</div><div class="report-card-l">Всего отказов</div></div>
       <div class="report-card red"><div class="report-card-n">${selfRefuse}</div><div class="report-card-l">Отказался сам</div></div>
       <div class="report-card red"><div class="report-card-n">${noShow}</div><div class="report-card-l">Не вышел на собес</div></div>
       <div class="report-card red"><div class="report-card-n">${compRefuse}</div><div class="report-card-l">Отказ компании</div></div>
     </div>
-    ${total>0?`<div class="report-detail"><table><thead><tr><th>ID</th><th>ФИО</th><th>Вакансия</th><th>Этап</th><th>Статус</th><th>Дата добавления</th></tr></thead><tbody>${tableRows}</tbody></table></div>`:'<div class="empty">Нет кандидатов по выбранным фильтрам</div>'}
-  `;
+    ${total>0?`<div class="report-detail"><table><thead><tr><th>ID</th><th>ФИО</th><th>Вакансия</th><th>Этап</th><th>Статус</th><th>Добавлен</th></tr></thead><tbody>${tableRows}</tbody></table></div>`:'<div class="empty">Нет кандидатов</div>'}`;
 }
 
 function buildFunnel(){
+  const pool=getReportPool();
   const from=document.getElementById('rFrom').value;
   const to=document.getElementById('rTo').value;
   const selVacs=[...document.querySelectorAll('[name=rVac]:checked')].map(x=>x.value);
   const allVac=selVacs.includes('__all__')||selVacs.length===0;
-  let pool=D.candidates;
-  if(from) pool=pool.filter(c=>c.added&&c.added>=from);
-  if(to)   pool=pool.filter(c=>c.added&&c.added<=to);
-  if(!allVac) pool=pool.filter(c=>selVacs.filter(x=>x!=='__all__').includes(c.vacancy));
   const period=(from?`с ${from.split('-').reverse().join('.')} `:'')+(to?`по ${to.split('-').reverse().join('.')}` :'');
   const vacLabel=allVac?'Все вакансии':selVacs.filter(x=>x!=='__all__').join(', ');
   const total=pool.length;
-
-  // Иерархия этапов — чем дальше в списке, тем выше этап
-  // Кандидат на этапе N считается прошедшим все этапы 0..N-1
-  const HIERARCHY=[
-    'Отклик',
-    'Интервью HR — назначено',
-    'Интервью HR — проведено',
-    'Интервью с РОП — назначено',
-    'Интервью с РОП — проведено',
-    'Финал',
-    'Оффер',
-    'Обучение',
-    'Работает',
-    // Старые этапы — маппинг на позицию в иерархии
-    'Интервью HR',           // = уровень HR назначено
-    'Интервью с руководителем', // = уровень РОП назначено
-    'Выход',                 // = уровень Работает
-  ];
-
-  // Уровень кандидата в иерархии
-  function stageLevel(stage){
-    const map={
-      'Отклик':0,
-      'Интервью HR — назначено':1,
-      'Интервью HR — проведено':2,
-      'Интервью HR':2,
-      'Интервью с РОП — назначено':3,
-      'Интервью с РОП — проведено':4,
-      'Интервью с руководителем':4,
-      'Финал':5,
-      'Оффер':6,
-      'Обучение':7,
-      'Работает':8,
-      'Выход':8,
-    };
-    return map[stage]??0;
-  }
-
-  // Считаем: достиг ли кандидат уровня level или выше
-  function reached(c, level){ return stageLevel(c.stage)>=level; }
-
-  // Не вышел на собес именно на данном этапе
-  const noShowHR   = pool.filter(c=>['Интервью HR — назначено','Интервью HR'].includes(c.stage)&&c.status==='Не вышел на собеседование').length;
-  const noShowROP  = pool.filter(c=>c.stage==='Интервью с РОП — назначено'&&c.status==='Не вышел на собеседование').length;
-
-  const hrAssigned  = pool.filter(c=>reached(c,1)).length;
-  const hrDone      = pool.filter(c=>reached(c,2)).length + pool.filter(c=>stageLevel(c.stage)===1&&c.status!=='Не вышел на собеседование'&&!REFUSE_STATUSES.includes(c.status)).length;
-  const ropAssigned = pool.filter(c=>reached(c,3)).length;
-  const ropDone     = pool.filter(c=>reached(c,4)).length + pool.filter(c=>stageLevel(c.stage)===3&&c.status!=='Не вышел на собеседование'&&!REFUSE_STATUSES.includes(c.status)).length;
-  const offerCount  = pool.filter(c=>reached(c,6)).length;
-  const trainCount  = pool.filter(c=>reached(c,7)).length;
-  const workCount   = pool.filter(c=>reached(c,8)).length;
-  const totalRefuse = pool.filter(c=>REFUSE_STATUSES.includes(c.status)).length;
-
+  function reached(c,level){return stageLevel(c.stage)>=level;}
+  const hrAssigned=pool.filter(c=>reached(c,1)).length;
+  const hrNoShow=pool.filter(c=>stageLevel(c.stage)===1&&c.status==='Не вышел на собеседование').length;
+  const hrDone=pool.filter(c=>reached(c,2)).length;
+  const ropAssigned=pool.filter(c=>reached(c,3)).length;
+  const ropNoShow=pool.filter(c=>stageLevel(c.stage)===3&&c.status==='Не вышел на собеседование').length;
+  const ropDone=pool.filter(c=>reached(c,4)).length;
+  const offerCount=pool.filter(c=>reached(c,5)).length;
+  const trainCount=pool.filter(c=>reached(c,6)).length;
+  const workCount=pool.filter(c=>reached(c,7)).length;
+  const totalRefuse=pool.filter(c=>REFUSE_STATUSES.includes(c.status)).length;
   function pct(a,b){return b>0?Math.round(a/b*100)+'%':'—';}
-  function fRow(icon,label,n,prev,base){
-    const bg=label.includes('проведено')||label.includes('Вышел')?'background:#f0fff4':'';
-    return `<tr style="border-bottom:1px solid #e8ecf0;${bg}">
+  function fRow(icon,label,n,prev,base,green){
+    return `<tr style="border-bottom:1px solid #e8ecf0${green?';background:#f0fff4':''}">
       <td style="padding:11px 14px;font-weight:600;font-size:13px">${icon} ${label}</td>
       <td style="padding:11px 14px;text-align:center;font-size:20px;font-weight:700;color:#1F3864">${n}</td>
       <td style="padding:11px 14px;text-align:center;font-size:13px;color:#888">${pct(n,base)}</td>
       <td style="padding:11px 14px;text-align:center;font-size:13px;color:#555">${prev>0?pct(n,prev):'—'}</td>
     </tr>`;
   }
-
   document.getElementById('reportResult').innerHTML=`
-    <div class="section-title" style="margin-top:0">📈 Воронка найма ${period?'— '+period:''} | ${vacLabel}</div>
+    <div class="section-title" style="margin-top:0">📈 Воронка ${period?'— '+period:''} | ${vacLabel}</div>
     <div style="background:#fff;border:1px solid #c8d4e8;border-radius:8px;overflow:hidden;margin-bottom:12px">
       <table style="width:100%;border-collapse:collapse;font-size:13px">
         <thead><tr style="background:#1F3864;color:#fff">
@@ -623,30 +493,31 @@ function buildFunnel(){
         </tr></thead>
         <tbody>
           <tr style="background:#e3f2fd;border-bottom:1px solid #e8ecf0">
-            <td style="padding:11px 14px;font-weight:700;font-size:14px">📥 Отклики</td>
+            <td style="padding:11px 14px;font-weight:700">📥 Отклики</td>
             <td style="padding:11px 14px;text-align:center;font-size:22px;font-weight:700;color:#1F3864">${total}</td>
             <td style="padding:11px 14px;text-align:center;color:#888">100%</td>
             <td style="padding:11px 14px;text-align:center;color:#888">—</td>
           </tr>
-          ${fRow('🗣️','Интервью HR — назначено', hrAssigned, total, total)}
-          ${fRow('✅','Интервью HR — проведено', hrDone, hrAssigned, total)}
-          ${fRow('👔','Интервью с РОП — назначено', ropAssigned, hrDone, total)}
-          ${fRow('✅','Интервью с РОП — проведено', ropDone, ropAssigned, total)}
-          ${fRow('📄','Оффер', offerCount, ropDone, total)}
-          ${fRow('🎓','Обучение — начали', trainCount, offerCount, total)}
-          ${fRow('🏆','Вышел на работу', workCount, trainCount, total)}
+          ${fRow('🗣️','Интервью HR — назначено',hrAssigned,total,total,false)}
+          ${fRow('✅','Интервью HR — проведено',hrDone,hrAssigned,total,true)}
+          ${fRow('👔','Интервью с РОП — назначено',ropAssigned,hrDone,total,false)}
+          ${fRow('✅','Интервью с РОП — проведено',ropDone,ropAssigned,total,true)}
+          ${fRow('📄','Оффер',offerCount,ropDone,total,false)}
+          ${fRow('🎓','Обучение — начали',trainCount,offerCount,total,false)}
+          ${fRow('🏆','Вышел на работу',workCount,trainCount,total,true)}
         </tbody>
       </table>
     </div>
     <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px">
       <div class="report-card red"><div class="report-card-n">${totalRefuse}</div><div class="report-card-l">Всего отказов</div></div>
-      <div class="report-card red"><div class="report-card-n">${noShowHR+noShowROP}</div><div class="report-card-l">Не вышли на собес</div></div>
+      <div class="report-card red"><div class="report-card-n">${hrNoShow+ropNoShow}</div><div class="report-card-l">Не вышли на собес</div></div>
       <div class="report-card green"><div class="report-card-n">${workCount}</div><div class="report-card-l">Вышли на работу ✅</div></div>
     </div>`;
 }
+
 // ========== PDF ==========
 let pendingPdfName='';
-function loadPDFJS(){return new Promise((resolve,reject)=>{if(typeof pdfjsLib!=='undefined'){resolve();return;}const script=document.createElement('script');script.src='https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.min.js';script.onload=()=>{pdfjsLib.GlobalWorkerOptions.workerSrc='https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.worker.min.js';resolve();};script.onerror=reject;document.head.appendChild(script);});}
+function loadPDFJS(){return new Promise((resolve,reject)=>{if(typeof pdfjsLib!=='undefined'){resolve();return;}const s=document.createElement('script');s.src='https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.min.js';s.onload=()=>{pdfjsLib.GlobalWorkerOptions.workerSrc='https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.worker.min.js';resolve();};s.onerror=reject;document.head.appendChild(s);});}
 function extractFromPDFText(text){const result={name:'',phone:''};const nm=text.substring(0,500).match(/([А-Я][а-я]+)\s+([А-Я][а-я]+)\s+([А-Я][а-я]+)/);if(nm)result.name=nm[0];const m=text.match(/(?:\+7|8|7)[\s\-\(\)]*(\d{3})[\s\-\(\)]*(\d{3})[\s\-\(\)]*(\d{2})[\s\-\(\)]*(\d{2})/);if(m)result.phone='+7'+m[1]+m[2]+m[3]+m[4];else{const sd=text.match(/\d{10}/);if(sd)result.phone='+7'+sd[0];}return result;}
 async function parsePDF(e){const file=e.target.files[0];if(!file)return;pendingPdfName=file.name;const area=document.querySelector('.upload-area');if(area)area.innerHTML='⏳ Читаю резюме...';try{await loadPDFJS();const pdf=await pdfjsLib.getDocument({data:await file.arrayBuffer()}).promise;let text='';for(let i=1;i<=pdf.numPages;i++){const pg=await pdf.getPage(i);const tc=await pg.getTextContent();text+=tc.items.map(x=>x.str).join(' ')+' ';}const ex=extractFromPDFText(text);if(ex.name){const fn=document.getElementById('fn');if(fn)fn.value=ex.name;}if(ex.phone){const fp=document.getElementById('fphone');if(fp)fp.value=ex.phone;}if(area){if(ex.phone){area.innerHTML='✅ Телефон загружен!';area.style.borderColor='#639922';area.style.background='#EAF3DE';area.style.color='#3B6D11';}else{area.innerHTML='⚠️ Телефон не найден.';area.style.borderColor='#F9A825';area.style.background='#FFF8E1';area.style.color='#E65100';}}}catch(err){if(area){area.innerHTML='⚠️ Ошибка PDF.';area.style.borderColor='#E24B4A';area.style.color='#A32D2D';}}}
 
@@ -702,48 +573,21 @@ function openEdit(id){
     </div>`);
 }
 
-function archiveCandidate(id){
-  const c=D.candidates.find(x=>x.id===id);
-  if(!c)return;
-  if(!confirm(`Архивировать ${c.name}? Кандидат пропадёт из основного списка, но останется в архиве и будет учитываться в воронке.`))return;
-  c.archived=true;
-  saveData();closeModal();render();
-}
-
-function unarchiveCandidate(id){
-  const c=D.candidates.find(x=>x.id===id);
-  if(!c)return;
-  c.archived=false;
-  saveData();render();
-}
-
-function archiveAllInactive(){
-  const count=D.candidates.filter(c=>!c.archived&&INACTIVE.includes(c.status)).length;
-  if(!count){alert('Нет неактивных кандидатов для архивирования.');return;}
-  if(!confirm(`Архивировать всех неактивных кандидатов (${count} чел.)? Они пропадут из основного списка.`))return;
-  D.candidates.forEach(c=>{if(!c.archived&&INACTIVE.includes(c.status))c.archived=true;});
-  saveData();render();
-}
-
-function renderArchive(){
-  const atb=document.getElementById('atb');
-  const athead=document.getElementById('athead-row');
-  if(!atb||!athead)return;
-  const archived=D.candidates.filter(c=>c.archived);
-  athead.innerHTML=`<th style="background:#1F3864;color:#fff;padding:10px 12px">ID</th><th style="background:#1F3864;color:#fff;padding:10px 12px">ФИО</th><th style="background:#1F3864;color:#fff;padding:10px 12px">Вакансия</th><th style="background:#1F3864;color:#fff;padding:10px 12px">Этап</th><th style="background:#1F3864;color:#fff;padding:10px 12px">Статус</th><th style="background:#1F3864;color:#fff;padding:10px 12px">Причина</th><th style="background:#1F3864;color:#fff;padding:10px 12px">Добавлен</th><th style="background:#1F3864;color:#fff;padding:10px 12px"></th>`;
-  if(!archived.length){atb.innerHTML=`<tr><td colspan="8" class="empty">Архив пуст</td></tr>`;return;}
-  atb.innerHTML=archived.map(c=>`<tr class="row-done">
-    <td>${c.id}</td><td><b>${c.name}</b></td><td>${c.vacancy}</td><td>${c.stage}</td>
-    <td>${sbadge(c.status)}</td>
-    <td>${c.refuseReason?`<span class="badge br">${c.refuseReason}</span>`:''}</td>
-    <td>${c.added||''}</td>
-    <td><button class="btn btn-sm" onclick="unarchiveCandidate('${c.id}')" title="Вернуть">↩️</button></td>
-  </tr>`).join('');
-}
-
 function saveEdit(id){
   const c=D.candidates.find(x=>x.id===id);if(!c)return;
-  c.added=document.getElementById('fa')?.value||c.added;c.name=document.getElementById('fn')?.value.trim()||c.name;c.vacancy=document.getElementById('fv')?.value||c.vacancy;c.source=document.getElementById('fs')?.value||'';c.contacts=document.getElementById('fphone')?.value.trim()||'';c.stage=document.getElementById('fst')?.value||c.stage;c.status=document.getElementById('fsts')?.value||c.status;c.next=document.getElementById('fnx')?.value||'';c.nextDate=document.getElementById('fnd')?.value||'';c.comment=document.getElementById('fco')?.value||'';c.resumeLink=document.getElementById('frl')?.value||'';c.meetTime=document.getElementById('fmt')?.value||'';c.hhLink=document.getElementById('fhh')?.value||'';
+  c.added=document.getElementById('fa')?.value||c.added;
+  c.name=document.getElementById('fn')?.value.trim()||c.name;
+  c.vacancy=document.getElementById('fv')?.value||c.vacancy;
+  c.source=document.getElementById('fs')?.value||'';
+  c.contacts=document.getElementById('fphone')?.value.trim()||'';
+  c.stage=document.getElementById('fst')?.value||c.stage;
+  c.status=document.getElementById('fsts')?.value||c.status;
+  c.next=document.getElementById('fnx')?.value||'';
+  c.nextDate=document.getElementById('fnd')?.value||'';
+  c.comment=document.getElementById('fco')?.value||'';
+  c.resumeLink=document.getElementById('frl')?.value||'';
+  c.meetTime=document.getElementById('fmt')?.value||'';
+  c.hhLink=document.getElementById('fhh')?.value||'';
   if(document.getElementById('frr'))c.refuseReason=document.getElementById('frr').value;
   if(!REFUSE_STATUSES.includes(c.status))c.refuseReason='';
   saveData();closeModal();render();
@@ -759,7 +603,7 @@ function openHist(id){
   const c=D.candidates.find(x=>x.id===id);if(!c)return;
   modal(`<h2>📋 Событие — ${c.name}</h2>
     <div class="fr"><label>Дата</label><input type="date" id="hd" value="${todayStr()}"></div>
-    <div class="fr"><label>Тип события</label><select id="he">${sel(EVENTS,'Интервью HR')}</select></div>
+    <div class="fr"><label>Тип события</label><select id="he">${sel(EVENTS,'Интервью HR — назначено')}</select></div>
     <div class="fr"><label>Описание</label><textarea id="hds"></textarea></div>
     <div class="fr"><label>Результат</label><input id="hr"></div>
     <div class="mfoot"><button class="btn" onclick="openEdit('${id}')">← Назад</button><button class="btn btn-primary" onclick="saveHist('${id}')">Добавить</button></div>`);
@@ -774,7 +618,14 @@ function saveHist(id){
 function importJSON(e){
   const file=e.target.files[0];if(!file)return;
   const reader=new FileReader();
-  reader.onload=function(ev){try{const data=JSON.parse(ev.target.result);if(data.candidates&&Array.isArray(data.candidates))D.candidates=data.candidates.map(c=>({...c,status:normalizeStatus(c.status)}));if(data.history&&Array.isArray(data.history))D.history=data.history;saveLocal();render();syncToSheets();alert('✅ Данные загружены!');}catch(err){alert('Ошибка: '+err.message);}};
+  reader.onload=function(ev){
+    try{
+      const data=JSON.parse(ev.target.result);
+      if(data.candidates&&Array.isArray(data.candidates))D.candidates=data.candidates.map(c=>({...c,status:normalizeStatus(c.status)}));
+      if(data.history&&Array.isArray(data.history))D.history=data.history;
+      saveLocal();render();syncToSheets();alert('✅ Данные загружены!');
+    }catch(err){alert('Ошибка: '+err.message);}
+  };
   reader.readAsText(file);e.target.value='';
 }
 
