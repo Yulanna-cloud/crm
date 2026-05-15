@@ -595,7 +595,24 @@ function saveEdit(id){
 
 function saveEditThenHist(id){
   const c=D.candidates.find(x=>x.id===id);
-  if(c){c.contacts=document.getElementById('fphone')?.value.trim()||'';c.stage=document.getElementById('fst')?.value||c.stage;c.status=document.getElementById('fsts')?.value||c.status;if(document.getElementById('frr'))c.refuseReason=document.getElementById('frr').value;saveData();}
+  if(c){
+    c.added=document.getElementById('fa')?.value||c.added;
+    c.name=document.getElementById('fn')?.value.trim()||c.name;
+    c.vacancy=document.getElementById('fv')?.value||c.vacancy;
+    c.source=document.getElementById('fs')?.value||'';
+    c.contacts=document.getElementById('fphone')?.value.trim()||'';
+    c.stage=document.getElementById('fst')?.value||c.stage;
+    c.status=document.getElementById('fsts')?.value||c.status;
+    c.next=document.getElementById('fnx')?.value||'';
+    c.nextDate=document.getElementById('fnd')?.value||'';
+    c.comment=document.getElementById('fco')?.value||'';
+    c.resumeLink=document.getElementById('frl')?.value||'';
+    c.meetTime=document.getElementById('fmt')?.value||'';
+    c.hhLink=document.getElementById('fhh')?.value||'';
+    if(document.getElementById('frr'))c.refuseReason=document.getElementById('frr').value;
+    if(!REFUSE_STATUSES.includes(c.status))c.refuseReason='';
+    saveData();
+  }
   openHist(id);
 }
 
