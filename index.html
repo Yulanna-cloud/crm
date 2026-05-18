@@ -98,7 +98,7 @@ tr:hover td{background:#e8f0fc}
     <input type="date" id="fDate" onchange="renderTable()" style="height:32px;font-size:13px;border:1px solid #ccc;border-radius:6px;padding:0 8px;background:#fff">
     <button class="btn" onclick="setToday()" style="background:#fff8e1;border-color:#f9a825;color:#f57f17;font-weight:600;white-space:nowrap">📅 Сегодня</button>
     <button class="btn" onclick="clearDate()" style="font-size:12px">✕ Дата</button>
-    <select id="fV"><option value="">Все вакансии</option><option>Менеджер по продажам</option><option>РОП (Далер)</option><option>инженер-сметчик</option><option>РОП</option><option>Project Manager</option><option>инженер-энергетик</option></select>
+    <select id="fV"><option value="">Все вакансии</option></select>
     <div class="dd-wrap">
       <button class="btn" onclick="toggleDD('stageDD')" id="stageBtnLabel" style="min-width:120px;text-align:left">Все этапы ▾</button>
       <div id="stageDD" class="dd-menu">
@@ -127,6 +127,7 @@ tr:hover td{background:#e8f0fc}
       </div>
     </div>
     <button class="btn btn-report" onclick="openReport()">📊 Отчёт</button>
+    <button class="btn" style="background:#e8f0fe;border-color:#3f51b5;color:#283593;font-weight:600" onclick="openVacancySettings()">⚙️ Вакансии</button>
     <button class="btn" style="background:#fff3e0;border-color:#ff9800;color:#e65100;font-weight:600" onclick="openBulkDelete()">🗑 Удалить по вакансии</button>
     <button class="btn" style="background:#f5f5f5;border-color:#999;color:#555;font-weight:600" onclick="archiveAllInactive()">🗄 Архив неакт.</button>
     <button class="btn btn-sync" onclick="syncToSheets()">☁️ Сохранить</button>
@@ -192,7 +193,8 @@ function normalizeStatus(s){
 
 const STAGES=['Отклик','Интервью HR — назначено','Интервью HR — проведено','Интервью с РОП — назначено','Интервью с РОП — проведено','Оффер','Обучение','Работает'];
 const STATUSES=['В работе','Перенос собеседования','Отказался сам (кандидат)','Отказ','Оффер','Вышел','Не вышел на собеседование'];
-const VACANCIES=['Менеджер по продажам','РОП (Далер)','инженер-сметчик','РОП','Project Manager','инженер-энергетик'];
+let VACANCIES=JSON.parse(localStorage.getItem('crm_vacancies')||'null')||['Менеджер по продажам','РОП (Далер)','инженер-сметчик','РОП','Project Manager','инженер-энергетик'];
+function saveVacancies(){localStorage.setItem('crm_vacancies',JSON.stringify(VACANCIES));}
 const EVENTS=['Добавлен кандидат','Интервью HR — назначено','Интервью HR — проведено','Интервью с РОП — назначено','Интервью с РОП — проведено','Оффер отправлен','Оффер принят','Отказался сам (кандидат)','Отказ компании','Выход на работу'];
 const REFUSE_REASONS=['','Слабый','Не пришёл на интервью','Не подходит доход','Принял другой оффер','Нерелевантный опыт','Другое'];
 const INACTIVE=['Отказ','Отказался сам (кандидат)','Вышел','Не вышел на собеседование'];
@@ -322,7 +324,69 @@ function closeModal(){document.getElementById('mdl').style.display='none';}
 function modal(html,wide){const m=document.getElementById('mdl');m.style.display='flex';m.className='modal-bg';m.innerHTML=`<div class="modal${wide?' modal-wide':''}">${html}</div>`;}
 document.getElementById('mdl').addEventListener('click',function(e){if(e.target===this)closeModal();});
 
-// ========== АРХИВ И УДАЛЕНИЕ ==========
+function openVacancySettings(){
+  modal(`<h2>⚙️ Управление вакансиями</h2>
+    <p style="font-size:13px;color:#666;margin-bottom:12px">Добавляй, переименовывай или удаляй вакансии. Изменения сохранятся сразу.</p>
+    <div id="vacList"></div>
+    <div class="fr" style="margin-top:12px">
+      <label>Добавить новую вакансию</label>
+      <div style="display:flex;gap:8px">
+        <input id="newVacName" placeholder="Название вакансии" style="flex:1;padding:8px 10px;border:1px solid #ddd;border-radius:6px;font-size:13px">
+        <button class="btn btn-primary" onclick="addVacancy()">Добавить</button>
+      </div>
+    </div>
+    <div class="mfoot"><button class="btn" onclick="closeModal()">Закрыть</button></div>`);
+  renderVacList();
+}
+
+function renderVacList(){
+  const el=document.getElementById('vacList');if(!el)return;
+  el.innerHTML=VACANCIES.map((v,i)=>`
+    <div style="display:flex;align-items:center;gap:8px;padding:6px 0;border-bottom:1px solid #f0f0f0">
+      <input value="${v}" id="vac_${i}" style="flex:1;padding:6px 10px;border:1px solid #ddd;border-radius:6px;font-size:13px">
+      <button class="btn btn-sm" onclick="saveVacancyName(${i})">💾</button>
+      <button class="btn btn-sm" style="color:#c62828;border-color:#ef9a9a" onclick="removeVacancy(${i})">🗑</button>
+    </div>`).join('');
+}
+
+function addVacancy(){
+  const input=document.getElementById('newVacName');
+  const name=input?.value.trim();
+  if(!name){alert('Введите название');return;}
+  if(VACANCIES.includes(name)){alert('Такая вакансия уже есть');return;}
+  VACANCIES.push(name);
+  saveVacancies();
+  updateFVSelect();
+  input.value='';
+  renderVacList();
+}
+
+function saveVacancyName(i){
+  const input=document.getElementById(`vac_${i}`);
+  const name=input?.value.trim();
+  if(!name){alert('Введите название');return;}
+  VACANCIES[i]=name;
+  saveVacancies();
+  updateFVSelect();
+  renderVacList();
+}
+
+function removeVacancy(i){
+  const vac=VACANCIES[i];
+  const count=D.candidates.filter(c=>c.vacancy===vac).length;
+  if(count>0&&!confirm(`По вакансии "${vac}" есть ${count} кандидатов. Удалить вакансию из списка? Кандидаты останутся.`))return;
+  VACANCIES.splice(i,1);
+  saveVacancies();
+  updateFVSelect();
+  renderVacList();
+}
+
+function updateFVSelect(){
+  const fv=document.getElementById('fV');
+  if(!fv)return;
+  const cur=fv.value;
+  fv.innerHTML=`<option value="">Все вакансии</option>`+VACANCIES.map(v=>`<option${v===cur?' selected':''}>${v}</option>`).join('');
+}
 function archiveCandidate(id){
   const c=D.candidates.find(x=>x.id===id);if(!c)return;
   if(!confirm(`Архивировать ${c.name}?`))return;
@@ -640,7 +704,7 @@ function importJSON(e){
   reader.readAsText(file);e.target.value='';
 }
 
-loadLocal();render();loadFromSheets();
+loadLocal();updateFVSelect();render();loadFromSheets();
 </script>
 </body>
 </html>
