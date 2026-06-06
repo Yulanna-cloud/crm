@@ -47,7 +47,7 @@ tr:hover td{background:#e8f0fc}
 .bw{background:#EAF3DE;color:#3B6D11}.bo{background:#E6F1FB;color:#185FA5}.bout{background:#E8F5E9;color:#1B5E20}
 .br{background:#FCEBEB;color:#A32D2D}.brs{background:#FBEAF0;color:#993556}.bnv{background:#FFF3E0;color:#E65100}
 .bpurple{background:#E8E0F5;color:#5E35B1}.bdef{background:#f0f0f0;color:#666}
-.bnedozvon{background:#FFF8E1;color:#F57F17}.bperezv{background:#E0F7FA;color:#00695C}
+.bnedozvon{background:#FFF8E1;color:#F57F17}.bperezv{background:#E0F7FA;color:#00695C}.bvclosed{background:#ECEFF1;color:#546E7A}
 .dot{width:8px;height:8px;border-radius:50%;display:inline-block;margin-right:5px;vertical-align:middle}
 .dr{background:#E24B4A}.dy{background:#EF9F27}.dg{background:#639922}
 .empty{text-align:center;padding:32px;color:#aaa}
@@ -138,6 +138,7 @@ tr:hover td{background:#e8f0fc}
       <button class="btn btn-settings" onclick="toggleSettingsMenu()">⚙️ Настройки ▾</button>
       <div class="settings-menu" id="settingsMenu">
         <div class="settings-menu-item" onclick="openVacancySettings();closeSettingsMenu()">🏢 Управление вакансиями</div>
+        <div class="settings-menu-item" onclick="openCloseVacancy();closeSettingsMenu()">🔒 Закрыть вакансию</div>
         <div class="settings-menu-item" onclick="archiveAllInactive();closeSettingsMenu()">🗄 Архивировать неактивных</div>
         <div class="settings-menu-item" onclick="openBulkDelete();closeSettingsMenu()">🗑 Удалить по вакансии</div>
       </div>
@@ -306,11 +307,12 @@ function normalizeStatus(s){
   return s;
 }
 const STAGES=['Отклик','Интервью HR — назначено','Интервью HR — проведено','Интервью с РОП — назначено','Интервью с РОП — проведено','Оффер','Обучение','Работает'];
-const STATUSES=['В работе','Перенос собеседования','Недозвон','Перезвон','Отказался сам (кандидат)','Отказ','Оффер','Вышел','Не вышел на собеседование'];
+const STATUSES=['В работе','Перенос собеседования','Недозвон','Перезвон','Отказался сам (кандидат)','Отказ','Оффер','Вышел','Не вышел на собеседование','Вакансия закрыта'];
 const EVENTS=['Добавлен кандидат','Интервью HR — назначено','Интервью HR — проведено','Интервью с РОП — назначено','Интервью с РОП — проведено','Оффер отправлен','Оффер принят','Отказался сам (кандидат)','Отказ компании','Выход на работу'];
 const REFUSE_REASONS=['','Слабый','Не пришёл на интервью','Не подходит доход','Принял другой оффер','Нерелевантный опыт','Другое'];
-const INACTIVE=['Отказ','Отказался сам (кандидат)','Вышел','Не вышел на собеседование'];
+const INACTIVE=['Отказ','Отказался сам (кандидат)','Вышел','Не вышел на собеседование','Вакансия закрыта'];
 const REFUSE_STATUSES=['Отказ','Отказался сам (кандидат)','Не вышел на собеседование'];
+const CLOSED_VACANCY_STATUS='Вакансия закрыта';
 function stageLevel(stage){
   const map={'Отклик':0,'Интервью HR — назначено':1,'Интервью HR':2,'Интервью HR — проведено':2,'Интервью с РОП — назначено':3,'Интервью с руководителем':4,'Финал':4,'Интервью с РОП — проведено':4,'Оффер':5,'Обучение':6,'Работает':7,'Выход':7};
   return map[stage]??0;
@@ -330,7 +332,7 @@ function sel(opts,val){return opts.map(o=>`<option${o===val?' selected':''}>${o}
 function selStage(val){const opts=[...STAGES];if(val&&!opts.includes(val))opts.push(val);return opts.map(o=>`<option${o===val?' selected':''}>${o}</option>`).join('');}
 function toggleRefuse(s,divId){const d=document.getElementById(divId);if(d)d.style.display=['Отказ','Отказался сам (кандидат)'].includes(s.value)?'block':'none';}
 function sbadge(s){
-  const m={'В работе':'bw','Перенос собеседования':'bpurple','Оффер':'bo','Вышел':'bout','Отказ':'br','Отказался сам (кандидат)':'brs','Не вышел на собеседование':'bnv','Недозвон':'bnedozvon','Перезвон':'bperezv'};
+  const m={'В работе':'bw','Перенос собеседования':'bpurple','Оффер':'bo','Вышел':'bout','Отказ':'br','Отказался сам (кандидат)':'brs','Не вышел на собеседование':'bnv','Недозвон':'bnedozvon','Перезвон':'bperezv','Вакансия закрыта':'bvclosed'};
   return `<span class="badge ${m[s]||'bdef'}">${s}</span>`;
 }
 function dlabel(ds){const d=parseDate(ds);if(!d)return '';const today=new Date();today.setHours(0,0,0,0);d.setHours(0,0,0,0);const diff=Math.round((d-today)/86400000);const cls=diff<0?'dr':diff===0?'dy':'dg';return `<span class="dot ${cls}"></span>${d.toLocaleDateString('ru-RU',{day:'2-digit',month:'2-digit'})}`;}
@@ -416,6 +418,51 @@ function modal(html,wide){const m=document.getElementById('mdl');m.style.display
 document.getElementById('mdl').addEventListener('click',function(e){if(e.target===this)closeModal();});
 function archiveCandidate(id){const c=D.candidates.find(x=>x.id===id);if(!c)return;if(!confirm(`Архивировать ${c.name}?`))return;c.archived=true;saveData();closeModal();render();}
 function unarchiveCandidate(id){const c=D.candidates.find(x=>x.id===id);if(!c)return;c.archived=false;saveData();render();}
+function openCloseVacancy(){
+  modal(`<h2>🔒 Закрыть вакансию</h2>
+<p style="font-size:13px;color:#666;margin-bottom:16px">Все активные кандидаты по выбранной вакансии получат статус «Вакансия закрыта» и будут заархивированы.</p>
+<div class="fr"><label>Выбери вакансию</label><select id="closeVacSel">${VACANCIES.map(v=>`<option>${v}</option>`).join('')}</select></div>
+<div id="closeVacCount" style="font-size:13px;color:#888;margin-bottom:12px;padding:8px 10px;background:#f5f5f5;border-radius:6px;"></div>
+<div class="mfoot" style="justify-content:space-between">
+  <button class="btn" onclick="closeModal()">Отмена</button>
+  <button class="btn" style="background:#546E7A;color:#fff;border-color:#546E7A;font-weight:600" onclick="closeVacancy()">🔒 Закрыть вакансию</button>
+</div>`);
+  const sel = document.getElementById('closeVacSel');
+  const updateCount = () => {
+    const vac = sel.value;
+    const active = D.candidates.filter(c => !c.archived && !INACTIVE.includes(c.status) && c.vacancy === vac).length;
+    const total = D.candidates.filter(c => c.vacancy === vac).length;
+    document.getElementById('closeVacCount').textContent = `Активных кандидатов: ${active} из ${total} всего`;
+  };
+  sel.addEventListener('change', updateCount);
+  updateCount();
+}
+
+function closeVacancy(){
+  const vac = document.getElementById('closeVacSel')?.value;
+  if (!vac) return;
+  const active = D.candidates.filter(c => !c.archived && !INACTIVE.includes(c.status) && c.vacancy === vac);
+  if (!active.length) { alert('Нет активных кандидатов по этой вакансии.'); return; }
+  if (!confirm(`Закрыть вакансию «${vac}»? ${active.length} кандидатов получат статус «Вакансия закрыта» и будут заархивированы.`)) return;
+  active.forEach(c => {
+    c.status = 'Вакансия закрыта';
+    c.archived = true;
+  });
+  D.history.push({
+    date: todayStr(),
+    cid: '',
+    name: `Вакансия: ${vac}`,
+    vacancy: vac,
+    event: 'Вакансия закрыта',
+    desc: `Закрыто ${active.length} кандидатов`,
+    result: '',
+    resp: 'Я'
+  });
+  saveData();
+  closeModal();
+  render();
+}
+
 function archiveAllInactive(){const count=D.candidates.filter(c=>!c.archived&&INACTIVE.includes(c.status)).length;if(!count){alert('Нет неактивных кандидатов.');return;}if(!confirm(`Архивировать всех неактивных (${count} чел.)?`))return;D.candidates.forEach(c=>{if(!c.archived&&INACTIVE.includes(c.status))c.archived=true;});saveData();render();}
 function deleteCandidate(id){const c=D.candidates.find(x=>x.id===id);if(!c)return;if(!confirm(`Удалить ${c.name} навсегда?`))return;D.candidates=D.candidates.filter(x=>x.id!==id);D.history=D.history.filter(x=>x.cid!==id);saveData();closeModal();render();}
 function openBulkDelete(){
