@@ -526,18 +526,24 @@ function showFunnelList(key, label){
   var rows = cands.map(function(c){
     return '<tr style="border-bottom:1px solid #eee"><td style="padding:8px 12px">'+(c.name||'')+'</td><td style="padding:8px 12px">'+(c.vacancy||'')+'</td><td style="padding:8px 12px">'+(c.status||'')+'</td><td style="padding:8px 12px;white-space:nowrap">'+(c.added||'')+'</td></tr>';
   }).join('');
-  // Открываем как модальное окно по центру
-  var mdl = document.getElementById('mdl');
-  mdl.style.display = 'flex';
-  mdl.className = 'modal-bg';
-  mdl.innerHTML = '<div class="modal modal-wide" style="max-height:85vh;display:flex;flex-direction:column;">' +
-    '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">' +
+  // Используем отдельный оверлей — не трогает основной mdl с отчётом
+  var overlay = document.getElementById('funnelOverlay');
+  if(!overlay){
+    overlay = document.createElement('div');
+    overlay.id = 'funnelOverlay';
+    overlay.style.cssText = 'position:fixed;inset:0;background:rgba(13,31,53,0.5);z-index:500;display:flex;align-items:center;justify-content:center;';
+    document.body.appendChild(overlay);
+  }
+  overlay.style.display = 'flex';
+  overlay.innerHTML =
+    '<div style="background:#fff;border-radius:10px;border:1px solid #ddd;padding:22px;width:820px;max-width:94vw;max-height:82vh;display:flex;flex-direction:column;box-shadow:0 8px 32px rgba(0,0,0,0.18);">' +
+    '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;">' +
     '<h2 style="font-size:16px;font-weight:700;color:#1F3864;">' + label + ' — ' + cands.length + ' чел.</h2>' +
-    '<button onclick="closeModal()" style="background:none;border:none;font-size:22px;cursor:pointer;color:#888;line-height:1;">&times;</button>' +
+    '<button id="closeFunnelOverlay" style="background:none;border:none;font-size:24px;cursor:pointer;color:#888;line-height:1;padding:0 4px;">&times;</button>' +
     '</div>' +
-    '<div style="overflow-y:auto;flex:1;">' +
+    '<div style="overflow-y:auto;flex:1;border:1px solid #e0e0e0;border-radius:6px;">' +
     '<table style="width:100%;font-size:13px;border-collapse:collapse;">' +
-    '<thead><tr style="background:#1F3864;color:#fff;">' +
+    '<thead><tr style="background:#1F3864;color:#fff;position:sticky;top:0;">' +
     '<th style="padding:9px 12px;text-align:left;">ФИО</th>' +
     '<th style="padding:9px 12px;text-align:left;">Вакансия</th>' +
     '<th style="padding:9px 12px;text-align:left;">Статус</th>' +
@@ -546,8 +552,12 @@ function showFunnelList(key, label){
     '<tbody>' + rows + '</tbody>' +
     '</table></div>' +
     '<div style="padding-top:14px;text-align:right;border-top:1px solid #eee;margin-top:12px;">' +
-    '<button class="btn btn-primary" onclick="closeModal()">Закрыть</button>' +
+    '<button class="btn btn-primary" id="closeFunnelOverlay2">Закрыть</button>' +
     '</div></div>';
+  function closeOverlay(){ overlay.style.display='none'; }
+  document.getElementById('closeFunnelOverlay').onclick = closeOverlay;
+  document.getElementById('closeFunnelOverlay2').onclick = closeOverlay;
+  overlay.onclick = function(e){ if(e.target===overlay) closeOverlay(); };
 }
 
 function buildFunnel(){
