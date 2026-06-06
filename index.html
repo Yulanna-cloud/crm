@@ -454,7 +454,25 @@ function openReport(){
   const vacOpts=`<label class="rdd-row" style="background:#f5f5f5;font-weight:600"><input type="checkbox" name="rVac" value="__all__" checked onchange="rVacAll(this)"> ✅ Все вакансии</label>`+VACANCIES.map(v=>`<label class="rdd-row"><input type="checkbox" name="rVac" value="${v}" onchange="rVacOne()"> ${v}</label>`).join('');
   const stageOpts=STAGES.map(s=>`<label class="rdd-row"><input type="checkbox" name="rStage" value="${s}" onchange="rUpdateLbl('rStage','rStage_lbl','Все этапы')"> ${s}</label>`).join('');
   const statusOpts=STATUSES.map(s=>`<label class="rdd-row"><input type="checkbox" name="rStatus" value="${s}" onchange="rUpdateLbl('rStatus','rStatus_lbl','Все статусы')"> ${s}</label>`).join('')+`<label class="rdd-row" style="background:#fff5f5;font-weight:600"><input type="checkbox" name="rStatus" value="__all_refuse__" onchange="rUpdateLbl('rStatus','rStatus_lbl','Все статусы')"> 🔴 Все отказы вместе</label>`;
+  // Формируем кнопки быстрого выбора месяца
+  const now2=new Date();
+  const monthBtnsArr=[];
+  for(let mi=0;mi<6;mi++){
+    const md=new Date(now2.getFullYear(),now2.getMonth()-mi,1);
+    const my=md.getFullYear(),mm=String(md.getMonth()+1).padStart(2,'0');
+    const mlabel=md.toLocaleDateString('ru-RU',{month:'long',year:'numeric'});
+    const mfrom=my+'-'+mm+'-01';
+    const mlast=new Date(my,md.getMonth()+1,0).getDate();
+    const mto=my+'-'+mm+'-'+String(mlast).padStart(2,'0');
+        monthBtnsArr.push('<button class="btn month-btn" style="font-size:12px;padding:5px 10px;" data-from="'+mfrom+'" data-to="'+mto+'">'+mlabel+'</button>');
+  }
+  const monthBtnsHtml=monthBtnsArr.join('');
+
   modal(`<h2>📊 Отчёт по кандидатам</h2>
+<div style="margin-bottom:10px;">
+  <div style="font-size:11px;color:#888;font-weight:600;text-transform:uppercase;letter-spacing:0.05em;margin-bottom:6px;">Быстрый выбор периода:</div>
+  <div style="display:flex;gap:6px;flex-wrap:wrap;">${monthBtnsHtml}</div>
+</div>
 <div class="f2" style="margin-bottom:12px"><div class="fr"><label>Период от</label><input type="date" id="rFrom"></div><div class="fr"><label>Период до</label><input type="date" id="rTo" value="${todayStr()}"></div></div>
 <div class="fr"><label>Вакансии</label><div style="border:1px solid #ddd;border-radius:6px;overflow:hidden;margin-top:4px"><div style="max-height:180px;overflow-y:auto;padding:4px 0">${vacOpts}</div><div style="border-top:1px solid #eee;padding:4px 10px;background:#fafafa"><button class="btn btn-sm" onclick="rVacReset()">Все</button> <span id="rVac_lbl" style="font-size:11px;color:#888;margin-left:6px">Все</span></div></div></div>
 <div class="f2" style="margin-top:10px">
@@ -497,20 +515,39 @@ window._funnelData = {};
 
 document.addEventListener('click', function(e){
   var t = e.target.closest ? e.target.closest('[data-fkey]') : null;
-  if(!t) return;
-  showFunnelList(t.getAttribute('data-fkey'), t.getAttribute('data-flabel'));
+  if(t){ showFunnelList(t.getAttribute('data-fkey'), t.getAttribute('data-flabel')); return; }
+  var mb = e.target.closest ? e.target.closest('.month-btn') : null;
+  if(mb){ setReportMonth(mb.getAttribute('data-from'), mb.getAttribute('data-to')); return; }
 });
 
 function showFunnelList(key, label){
   var cands = window._funnelData[key] || [];
   if(!cands.length) return;
-  var popup = document.getElementById('funnelListPopup');
-  if(!popup) return;
   var rows = cands.map(function(c){
-    return '<tr style="border-bottom:1px solid #eee"><td style="padding:6px 10px">'+(c.name||'')+'</td><td style="padding:6px 10px">'+(c.vacancy||'')+'</td><td style="padding:6px 10px">'+(c.status||'')+'</td><td style="padding:6px 10px">'+(c.added||'')+'</td></tr>';
+    return '<tr style="border-bottom:1px solid #eee"><td style="padding:8px 12px">'+(c.name||'')+'</td><td style="padding:8px 12px">'+(c.vacancy||'')+'</td><td style="padding:8px 12px">'+(c.status||'')+'</td><td style="padding:8px 12px;white-space:nowrap">'+(c.added||'')+'</td></tr>';
   }).join('');
-  popup.innerHTML='<div style="background:#fff;border:1px solid #c8d4e8;border-radius:8px;overflow:hidden;"><div style="background:#1F3864;color:#fff;padding:10px 14px;display:flex;justify-content:space-between;align-items:center;font-weight:600;font-size:13px;"><span>'+label+' — '+cands.length+' чел.</span><span id="closeFP" style="cursor:pointer;font-size:20px;padding:0 6px;">&times;</span></div><div style="max-height:320px;overflow-y:auto;"><table style="width:100%;font-size:12px;border-collapse:collapse;"><thead><tr style="background:#e8ecf5;"><th style="padding:7px 10px;text-align:left;">ФИО</th><th style="padding:7px 10px;text-align:left;">Вакансия</th><th style="padding:7px 10px;text-align:left;">Статус</th><th style="padding:7px 10px;text-align:left;">Добавлен</th></tr></thead><tbody>'+rows+'</tbody></table></div></div>';
-  document.getElementById('closeFP').onclick=function(){popup.innerHTML='';};
+  // Открываем как модальное окно по центру
+  var mdl = document.getElementById('mdl');
+  mdl.style.display = 'flex';
+  mdl.className = 'modal-bg';
+  mdl.innerHTML = '<div class="modal modal-wide" style="max-height:85vh;display:flex;flex-direction:column;">' +
+    '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">' +
+    '<h2 style="font-size:16px;font-weight:700;color:#1F3864;">' + label + ' — ' + cands.length + ' чел.</h2>' +
+    '<button onclick="closeModal()" style="background:none;border:none;font-size:22px;cursor:pointer;color:#888;line-height:1;">&times;</button>' +
+    '</div>' +
+    '<div style="overflow-y:auto;flex:1;">' +
+    '<table style="width:100%;font-size:13px;border-collapse:collapse;">' +
+    '<thead><tr style="background:#1F3864;color:#fff;">' +
+    '<th style="padding:9px 12px;text-align:left;">ФИО</th>' +
+    '<th style="padding:9px 12px;text-align:left;">Вакансия</th>' +
+    '<th style="padding:9px 12px;text-align:left;">Статус</th>' +
+    '<th style="padding:9px 12px;text-align:left;">Добавлен</th>' +
+    '</tr></thead>' +
+    '<tbody>' + rows + '</tbody>' +
+    '</table></div>' +
+    '<div style="padding-top:14px;text-align:right;border-top:1px solid #eee;margin-top:12px;">' +
+    '<button class="btn btn-primary" onclick="closeModal()">Закрыть</button>' +
+    '</div></div>';
 }
 
 function buildFunnel(){
