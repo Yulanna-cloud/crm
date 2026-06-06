@@ -479,7 +479,29 @@ function openReport(){
   const vacOpts=`<label class="rdd-row" style="background:#f5f5f5;font-weight:600"><input type="checkbox" name="rVac" value="__all__" checked onchange="rVacAll(this)"> ✅ Все вакансии</label>`+VACANCIES.map(v=>`<label class="rdd-row"><input type="checkbox" name="rVac" value="${v}" onchange="rVacOne()"> ${v}</label>`).join('');
   const stageOpts=STAGES.map(s=>`<label class="rdd-row"><input type="checkbox" name="rStage" value="${s}" onchange="rUpdateLbl('rStage','rStage_lbl','Все этапы')"> ${s}</label>`).join('');
   const statusOpts=STATUSES.map(s=>`<label class="rdd-row"><input type="checkbox" name="rStatus" value="${s}" onchange="rUpdateLbl('rStatus','rStatus_lbl','Все статусы')"> ${s}</label>`).join('')+`<label class="rdd-row" style="background:#fff5f5;font-weight:600"><input type="checkbox" name="rStatus" value="__all_refuse__" onchange="rUpdateLbl('rStatus','rStatus_lbl','Все статусы')"> 🔴 Все отказы вместе</label>`;
+
+  // Быстрые фильтры по месяцам
+  const now = new Date();
+  const months = [];
+  for(let i = 0; i < 6; i++){
+    const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+    const y = d.getFullYear();
+    const m = String(d.getMonth()+1).padStart(2,'0');
+    const label = d.toLocaleDateString('ru-RU',{month:'long',year:'numeric'});
+    const from = `${y}-${m}-01`;
+    const lastDay = new Date(y, d.getMonth()+1, 0).getDate();
+    const to = `${y}-${m}-${lastDay}`;
+    months.push({label, from, to});
+  }
+  const monthBtns = months.map(m =>
+    `<button class="btn btn-sm" style="font-size:11px" onclick="setReportMonth('${m.from}','${m.to}')">${m.label}</button>`
+  ).join('');
+
   modal(`<h2>📊 Отчёт по кандидатам</h2>
+<div style="background:#e3eaf5;border-radius:6px;padding:8px 12px;margin-bottom:10px;font-size:12px;color:#1F3864;">
+  ℹ️ Отчёт учитывает всех кандидатов включая архивных — воронка будет полной.
+</div>
+<div style="margin-bottom:10px;"><div style="font-size:11px;color:#888;margin-bottom:6px;font-weight:600;text-transform:uppercase;letter-spacing:0.05em;">Быстрый выбор периода:</div><div style="display:flex;gap:6px;flex-wrap:wrap;">${monthBtns}</div></div>
 <div class="f2" style="margin-bottom:12px"><div class="fr"><label>Период от</label><input type="date" id="rFrom"></div><div class="fr"><label>Период до</label><input type="date" id="rTo" value="${todayStr()}"></div></div>
 <div class="fr"><label>Вакансии</label><div style="border:1px solid #ddd;border-radius:6px;overflow:hidden;margin-top:4px"><div style="max-height:180px;overflow-y:auto;padding:4px 0">${vacOpts}</div><div style="border-top:1px solid #eee;padding:4px 10px;background:#fafafa"><button class="btn btn-sm" onclick="rVacReset()">Все</button> <span id="rVac_lbl" style="font-size:11px;color:#888;margin-left:6px">Все</span></div></div></div>
 <div class="f2" style="margin-top:10px">
@@ -489,6 +511,13 @@ function openReport(){
 <div class="mfoot" style="justify-content:space-between;margin-top:16px"><button class="btn" onclick="closeModal()">Закрыть</button><div style="display:flex;gap:8px"><button class="btn" style="background:#fff8e1;border-color:#f9a825;color:#e65100;font-weight:600" onclick="buildFunnel()">📈 Воронка</button><button class="btn btn-primary" onclick="buildReport()">Сформировать отчёт</button></div></div>
 <div id="reportResult" style="margin-top:16px"></div>`,true);
 }
+function setReportMonth(from, to){
+  const fromEl = document.getElementById('rFrom');
+  const toEl = document.getElementById('rTo');
+  if(fromEl) fromEl.value = from;
+  if(toEl) toEl.value = to;
+}
+
 function rUpdateLbl(name,lblId,def){const checked=[...document.querySelectorAll(`[name=${name}]:checked`)].map(x=>x.value).filter(x=>x!=='__all_refuse__');const hasRef=document.querySelector(`[name=${name}][value="__all_refuse__"]`)?.checked;const parts=[...checked,(hasRef?'Все отказы':'')].filter(Boolean);const el=document.getElementById(lblId);if(el)el.textContent=parts.length?parts.join(', '):def;}
 function rClear(name,lblId,def){document.querySelectorAll(`[name=${name}]`).forEach(x=>x.checked=false);const el=document.getElementById(lblId);if(el)el.textContent=def;}
 function rVacAll(cb){if(cb.checked)document.querySelectorAll('[name=rVac]').forEach(x=>{if(x.value!=='__all__')x.checked=false;});const el=document.getElementById('rVac_lbl');if(el)el.textContent='Все';}
@@ -498,6 +527,7 @@ function getReportPool(){
   const from=document.getElementById('rFrom').value,to=document.getElementById('rTo').value;
   const selVacs=[...document.querySelectorAll('[name=rVac]:checked')].map(x=>x.value);
   const allVac=selVacs.includes('__all__')||selVacs.length===0;
+  // Включаем архивных кандидатов в отчёт — они важны для воронки
   let pool=D.candidates;
   if(from)pool=pool.filter(c=>c.added&&c.added>=from);
   if(to)pool=pool.filter(c=>c.added&&c.added<=to);
