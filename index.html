@@ -448,6 +448,20 @@ const ZOOM_LINK = 'https://us05web.zoom.us/j/8208122054?pwd=SHAzL1kwTmcyYm1Pdkdz
 function getSlots(){ try{return JSON.parse(localStorage.getItem('crm_slots')||'[]');}catch(e){return[];} }
 function saveSlots(slots){ localStorage.setItem('crm_slots',JSON.stringify(slots)); }
 
+function copyInviteText(){
+  var el=document.getElementById('inviteText');
+  if(!el)return;
+  var text=el.innerText||el.textContent;
+  navigator.clipboard.writeText(text).then(function(){
+    alert('Текст скопирован! Вставь в MAX.');
+  }).catch(function(){
+    var ta=document.createElement('textarea');
+    ta.value=text;document.body.appendChild(ta);ta.select();
+    document.execCommand('copy');document.body.removeChild(ta);
+    alert('Текст скопирован! Вставь в MAX.');
+  });
+}
+
 function openSlotsManager(){
   const slots=getSlots();
   function slotClass(s){return s.taken?'slot-item taken':'slot-item free';}
@@ -534,19 +548,22 @@ function openSendInvite(candidateId,slot){
   var text='Добрый день!\nПриглашаю Вас на видео-встречу по вакансии '+vacancy+'\nДата и время: '+slot.date+' в '+mskTime+'\nСсылка-приглашение: '+ZOOM_LINK+'\n\nСообщите заранее, пожалуйста, если не сможете подключиться к встрече в запланированное время.';
   var encodedText=encodeURIComponent(text);
   var phone=(candidate.contacts||'').replace(/\D/g,'');
-  var tgLink='https://t.me/share/url?url=&text='+encodedText;
-  var waLink='https://wa.me/'+(phone||'')+' ?text='+encodedText;
+  // Telegram: открывает чат с номером телефона
+  var tgLink=phone?'https://t.me/+'+phone:'https://t.me/';
+  // WhatsApp: открывает чат с готовым текстом
+  var waLink=phone?'https://wa.me/'+phone+'?text='+encodedText:'https://wa.me/?text='+encodedText;
   var displayText=text.replace(/\n/g,'<br>');
   modal('<h2>📨 Отправить приглашение</h2>'+
     '<div style="background:#e8f5e9;border:1px solid #a5d6a7;border-radius:8px;padding:12px 14px;margin-bottom:16px;">'+
     '<strong style="font-size:13px;">Текст приглашения:</strong><br><br>'+
-    '<div style="white-space:pre-wrap;font-size:12px;color:#333;line-height:1.8;">'+displayText+'</div>'+
+    '<div id="inviteText" style="white-space:pre-wrap;font-size:12px;color:#333;line-height:1.8;">'+displayText+'</div>'+
     '</div>'+
     '<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-bottom:16px;">'+
-    '<a href="'+tgLink+'" target="_blank" class="btn btn-primary" style="text-align:center;text-decoration:none;background:#229ED9;border-color:#229ED9;justify-content:center;">📱 Telegram</a>'+
-    '<a href="'+waLink+'" target="_blank" class="btn btn-primary" style="text-align:center;text-decoration:none;background:#25D366;border-color:#25D366;justify-content:center;">💬 WhatsApp</a>'+
-    '<a href="https://max.ru/" target="_blank" class="btn btn-primary" style="text-align:center;text-decoration:none;background:#FF5C00;border-color:#FF5C00;justify-content:center;">🔥 MAX</a>'+
+    '<a href="'+tgLink+'" target="_blank" class="btn btn-primary" style="text-align:center;text-decoration:none;background:#229ED9;border-color:#229ED9;justify-content:center;" title="Откроет чат с кандидатом в Telegram">📱 Telegram</a>'+
+    '<a href="'+waLink+'" target="_blank" class="btn btn-primary" style="text-align:center;text-decoration:none;background:#25D366;border-color:#25D366;justify-content:center;" title="Откроет WhatsApp с готовым текстом">💬 WhatsApp</a>'+
+    '<button class="btn btn-primary" style="background:#FF5C00;border-color:#FF5C00;justify-content:center;" onclick="copyInviteText()">📋 Скопировать</button>'+
     '</div>'+
+    '<p style="font-size:11px;color:#888;margin-bottom:12px;">Telegram открывает чат с кандидатом. WhatsApp открывает чат с текстом. Для MAX — скопируй текст и вставь вручную.</p>'+
     '<div class="mfoot"><button class="btn" onclick="closeModal()">Закрыть</button></div>');
 }
 
