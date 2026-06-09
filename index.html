@@ -425,24 +425,8 @@ function modal(html,wide){const m=document.getElementById('mdl');m.style.display
 document.getElementById('mdl').addEventListener('click',function(e){if(e.target===this)closeModal();});
 function archiveCandidate(id){const c=D.candidates.find(x=>x.id===id);if(!c)return;if(!confirm(`Архивировать ${c.name}?`))return;c.archived=true;saveData();closeModal();render();}
 function unarchiveCandidate(id){const c=D.candidates.find(x=>x.id===id);if(!c)return;c.archived=false;saveData();render();}
-function openCloseVacancy(){
-  modal('<h2>🔒 Закрыть вакансию</h2><p style="font-size:13px;color:#666;margin-bottom:16px">Все активные кандидаты получат статус «Вакансия закрыта» и будут заархивированы.</p><div class="fr"><label>Выбери вакансию</label><select id="closeVacSel">'+VACANCIES.map(function(v){return '<option>'+v+'</option>';}).join('')+'</select></div><div id="closeVacCount" style="font-size:13px;color:#888;margin-bottom:12px;padding:8px 10px;background:#f5f5f5;border-radius:6px;"></div><div class="mfoot" style="justify-content:space-between"><button class="btn" onclick="closeModal()">Отмена</button><button class="btn" style="background:#546E7A;color:#fff;border-color:#546E7A;font-weight:600" onclick="closeVacancy()">🔒 Закрыть вакансию</button></div>');
-  var sel=document.getElementById('closeVacSel');
-  function updateCount(){var vac=sel.value;var active=D.candidates.filter(function(c){return !c.archived&&!INACTIVE.includes(c.status)&&c.vacancy===vac;}).length;var total=D.candidates.filter(function(c){return c.vacancy===vac;}).length;var el2=document.getElementById('closeVacCount');if(el2)el2.textContent='Активных: '+active+' из '+total+' всего';}
-  sel.addEventListener('change',updateCount);updateCount();
-}
-function closeVacancy(){
-  var vac=document.getElementById('closeVacSel')&&document.getElementById('closeVacSel').value;
-  if(!vac)return;
-  var active=D.candidates.filter(function(c){return !c.archived&&!INACTIVE.includes(c.status)&&c.vacancy===vac;});
-  if(!active.length){alert('Нет активных кандидатов.');return;}
-  if(!confirm('Закрыть вакансию «'+vac+'»? '+active.length+' кандидатов будут заархивированы.'))return;
-  active.forEach(function(c){c.status='Вакансия закрыта';c.archived=true;});
-  D.history.push({date:todayStr(),cid:'',name:'Вакансия: '+vac,vacancy:vac,event:'Вакансия закрыта',desc:'Закрыто '+active.length+' кандидатов',result:'',resp:'Я'});
-  saveData();closeModal();render();
-}
 
-// ── Слоты для встреч ──────────────────────────────────────────
+// ── Слоты для встреч ────────────────────────────────────────────
 const ZOOM_LINK = 'https://us05web.zoom.us/j/8208122054?pwd=SHAzL1kwTmcyYm1PdkdzNVNLNUZ6dz09';
 
 function getSlots(){ try{return JSON.parse(localStorage.getItem('crm_slots')||'[]');}catch(e){return[];} }
@@ -452,37 +436,17 @@ function copyInviteText(){
   var el=document.getElementById('inviteText');
   if(!el)return;
   var text=el.innerText||el.textContent;
-  navigator.clipboard.writeText(text).then(function(){
-    alert('Текст скопирован! Вставь в MAX.');
-  }).catch(function(){
-    var ta=document.createElement('textarea');
-    ta.value=text;document.body.appendChild(ta);ta.select();
-    document.execCommand('copy');document.body.removeChild(ta);
-    alert('Текст скопирован! Вставь в MAX.');
-  });
+  navigator.clipboard.writeText(text).then(function(){ alert('Текст скопирован!'); })
+  .catch(function(){ var ta=document.createElement('textarea');ta.value=text;document.body.appendChild(ta);ta.select();document.execCommand('copy');document.body.removeChild(ta);alert('Текст скопирован!'); });
 }
 
 function openSlotsManager(){
-  const slots=getSlots();
-  function slotClass(s){return s.taken?'slot-item taken':'slot-item free';}
+  var slots=getSlots();
   var slotRows=slots.length?slots.map(function(s,i){
-    return '<div class="'+slotClass(s)+'">'+
-      '<div><span class="slot-time">'+s.time+'</span><span class="slot-date">'+s.date+'</span>'+
-      (s.taken?'<span style="font-size:11px;color:#a02020;margin-left:8px;">занят: '+s.takenBy+'</span>':'')+
-      '</div>'+
-      '<button class="btn btn-sm" style="color:#c62828;border-color:#ef9a9a;" onclick="deleteSlot('+i+')">✕</button>'+
-      '</div>';
+    var cls=s.taken?'slot-item taken':'slot-item free';
+    return '<div class="'+cls+'"><div><span class="slot-time">'+s.time+'</span><span class="slot-date">'+s.date+'</span>'+(s.taken?'<span style="font-size:11px;color:#a02020;margin-left:8px;">занят: '+s.takenBy+'</span>':'')+'</div><button class="btn btn-sm" style="color:#c62828;border-color:#ef9a9a;" onclick="deleteSlot('+i+')">✕</button></div>';
   }).join(''):'<div style="color:#aaa;font-size:13px;padding:8px 0;">Нет слотов. Добавь своё свободное время.</div>';
-
-  modal('<h2>📅 Мои слоты для встреч</h2>'+
-    '<p style="font-size:12px;color:#666;margin-bottom:14px">Добавь свободные временные слоты. Во время звонка выбирай слот из карточки кандидата.</p>'+
-    '<div class="f2" style="margin-bottom:8px;">'+
-    '<div class="fr"><label>Дата</label><input type="date" id="slotDate" value="'+todayStr()+'"></div>'+
-    ('<div class="fr"><label>Время (твоё, Уфа +5)</label><input type="time" id="slotTime" value="10:00"></div>')+
-    '</div>'+
-    '<button class="btn btn-primary" style="margin-bottom:16px;width:100%;" onclick="addSlot()">+ Добавить слот</button>'+
-    '<div id="slotsList">'+slotRows+'</div>'+
-    '<div class="mfoot"><button class="btn" onclick="closeModal()">Закрыть</button></div>');
+  modal('<h2>📅 Мои слоты для встреч</h2><p style="font-size:12px;color:#666;margin-bottom:14px">Добавь свободные временные слоты (своё время, Уфа +5). Во время звонка выбирай слот из карточки кандидата.</p><div class="f2" style="margin-bottom:8px;"><div class="fr"><label>Дата</label><input type="date" id="slotDate" value="'+todayStr()+'"></div><div class="fr"><label>Время (Уфа +5)</label><input type="time" id="slotTime" value="10:00"></div></div><button class="btn btn-primary" style="margin-bottom:16px;width:100%;" onclick="addSlot()">+ Добавить слот</button><div id="slotsList">'+slotRows+'</div><div class="mfoot"><button class="btn" onclick="closeModal()">Закрыть</button></div>');
 }
 
 function addSlot(){
@@ -494,8 +458,7 @@ function addSlot(){
   var dateStr=d.toLocaleDateString('ru-RU',{day:'2-digit',month:'2-digit',year:'numeric'});
   slots.push({date:dateStr,dateRaw:date,time:time,taken:false,takenBy:''});
   slots.sort(function(a,b){return (a.dateRaw+a.time).localeCompare(b.dateRaw+b.time);});
-  saveSlots(slots);
-  openSlotsManager();
+  saveSlots(slots);openSlotsManager();
 }
 
 function deleteSlot(i){
@@ -508,14 +471,9 @@ function openBookSlot(candidateId){
   var slots=getSlots().filter(function(s){return !s.taken;});
   if(!slots.length){alert('Нет свободных слотов. Добавь их в Настройки → Мои слоты');return;}
   var slotRows=slots.map(function(s,i){
-    return '<div class="slot-item free" style="cursor:pointer;" data-cid="'+candidateId+'" data-si="'+i+'">'+
-      '<div><span class="slot-time">'+s.time+'</span><span style="font-size:13px;margin-left:10px;">'+s.date+'</span></div>'+
-      '<span style="color:#2e7d32;font-size:13px;">✓ выбрать</span></div>';
+    return '<div class="slot-item free" data-cid="'+candidateId+'" data-si="'+i+'"><div><span class="slot-time">'+s.time+'</span><span style="font-size:13px;margin-left:10px;">'+s.date+'</span></div><span style="color:#2e7d32;font-size:13px;">✓ выбрать</span></div>';
   }).join('');
-  modal('<h2>📅 Выбери время встречи</h2>'+
-    '<p style="font-size:12px;color:#666;margin-bottom:12px">Кандидат: <strong>'+cand.name+'</strong></p>'+
-    slotRows+
-    '<div class="mfoot"><button class="btn" onclick="closeModal()">Отмена</button></div>');
+  modal('<h2>📅 Выбери время встречи</h2><p style="font-size:12px;color:#666;margin-bottom:12px">Кандидат: <strong>'+cand.name+'</strong></p>'+slotRows+'<div class="mfoot"><button class="btn" onclick="closeModal()">Отмена</button></div>');
 }
 
 function bookSlot(candidateId,slotIndex){
@@ -526,12 +484,9 @@ function bookSlot(candidateId,slotIndex){
   var slot=freeSlots[slotIndex];
   if(!slot)return;
   var realIndex=allSlots.indexOf(slot);
-  allSlots[realIndex].taken=true;
-  allSlots[realIndex].takenBy=candidate.name;
+  allSlots[realIndex].taken=true;allSlots[realIndex].takenBy=candidate.name;
   saveSlots(allSlots);
-  candidate.nextDate=slot.dateRaw;
-  candidate.meetTime=slot.time;
-  candidate.next='Видео-интервью';
+  candidate.nextDate=slot.dateRaw;candidate.meetTime=slot.time;candidate.next='Видео-интервью';
   saveData();closeModal();render();
   openSendInvite(candidateId,slot);
 }
@@ -539,34 +494,143 @@ function bookSlot(candidateId,slotIndex){
 function openSendInvite(candidateId,slot){
   var candidate=D.candidates.find(function(x){return x.id===candidateId;});
   if(!candidate)return;
-  var parts=slot.time.split(':');
-  var h=parseInt(parts[0]);var m=parts[1];
-  // Уфа +5, МСК +3 → минус 2 часа
+  var parts=slot.time.split(':');var h=parseInt(parts[0]);var m=parts[1];
   var mskH=h-2;if(mskH<0)mskH+=24;
   var mskTime=String(mskH).padStart(2,'0')+':'+m+' (МСК)';
   var vacancy=candidate.vacancy||'';
   var text='Добрый день!\nПриглашаю Вас на видео-встречу по вакансии '+vacancy+'\nДата и время: '+slot.date+' в '+mskTime+'\nСсылка-приглашение: '+ZOOM_LINK+'\n\nСообщите заранее, пожалуйста, если не сможете подключиться к встрече в запланированное время.';
   var encodedText=encodeURIComponent(text);
   var phone=(candidate.contacts||'').replace(/\D/g,'');
-  // Telegram: открывает чат с номером телефона
   var tgLink=phone?'https://t.me/+'+phone:'https://t.me/';
-  // WhatsApp: открывает чат с готовым текстом
   var waLink=phone?'https://wa.me/'+phone+'?text='+encodedText:'https://wa.me/?text='+encodedText;
   var displayText=text.replace(/\n/g,'<br>');
-  modal('<h2>📨 Отправить приглашение</h2>'+
-    '<div style="background:#e8f5e9;border:1px solid #a5d6a7;border-radius:8px;padding:12px 14px;margin-bottom:16px;">'+
-    '<strong style="font-size:13px;">Текст приглашения:</strong><br><br>'+
-    '<div id="inviteText" style="white-space:pre-wrap;font-size:12px;color:#333;line-height:1.8;">'+displayText+'</div>'+
-    '</div>'+
-    '<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-bottom:16px;">'+
-    '<a href="'+tgLink+'" target="_blank" class="btn btn-primary" style="text-align:center;text-decoration:none;background:#229ED9;border-color:#229ED9;justify-content:center;" title="Откроет чат с кандидатом в Telegram">📱 Telegram</a>'+
-    '<a href="'+waLink+'" target="_blank" class="btn btn-primary" style="text-align:center;text-decoration:none;background:#25D366;border-color:#25D366;justify-content:center;" title="Откроет WhatsApp с готовым текстом">💬 WhatsApp</a>'+
-    '<button class="btn btn-primary" style="background:#FF5C00;border-color:#FF5C00;justify-content:center;" onclick="copyInviteText()">📋 Скопировать</button>'+
-    '</div>'+
-    '<p style="font-size:11px;color:#888;margin-bottom:12px;">Telegram открывает чат с кандидатом. WhatsApp открывает чат с текстом. Для MAX — скопируй текст и вставь вручную.</p>'+
-    '<div class="mfoot"><button class="btn" onclick="closeModal()">Закрыть</button></div>');
+  modal('<h2>📨 Отправить приглашение</h2><div style="background:#e8f5e9;border:1px solid #a5d6a7;border-radius:8px;padding:12px 14px;margin-bottom:16px;"><strong style="font-size:13px;">Текст приглашения:</strong><br><br><div id="inviteText" style="white-space:pre-wrap;font-size:12px;color:#333;line-height:1.8;">'+displayText+'</div></div><div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-bottom:12px;"><button id="tgInviteBtn" class="btn btn-primary" style="background:#229ED9;border-color:#229ED9;justify-content:center;">📱 Telegram</button><a href="'+waLink+'" target="_blank" class="btn btn-primary" style="text-align:center;text-decoration:none;background:#25D366;border-color:#25D366;justify-content:center;">💬 WhatsApp</a><button class="btn btn-primary" style="background:#FF5C00;border-color:#FF5C00;justify-content:center;" onclick="copyInviteText()">📋 Скопировать</button></div><p style="font-size:11px;color:#888;margin-bottom:12px;">Telegram и MAX: нажми кнопку, текст скопируется автоматически. Для WhatsApp текст вставится сам.</p><div class="mfoot"><button class="btn" onclick="closeModal()">Закрыть</button></div>');
+  setTimeout(function(){
+    var tgBtn=document.getElementById('tgInviteBtn');
+    if(tgBtn) tgBtn.onclick=function(){ copyInviteText(); window.open(tgLink,'_blank'); };
+  },100);
 }
 
+function openSendInviteAgain(candidateId){
+  var candidate=D.candidates.find(function(x){return x.id===candidateId;});
+  if(!candidate||!candidate.meetTime)return;
+  var allSlots=getSlots();
+  var slot=allSlots.find(function(s){return s.taken&&s.takenBy===candidate.name;});
+  if(!slot) slot={date:candidate.nextDate||'',time:candidate.meetTime,taken:true};
+  openSendInvite(candidateId,slot);
+}
+
+function releaseSlot(candidateId){
+  var candidate=D.candidates.find(function(x){return x.id===candidateId;});
+  if(!candidate)return;
+  var allSlots=getSlots();
+  var idx=allSlots.findIndex(function(s){return s.taken&&s.takenBy===candidate.name;});
+  if(idx>-1){allSlots[idx].taken=false;allSlots[idx].takenBy='';saveSlots(allSlots);}
+  candidate.meetTime='';candidate.nextDate='';candidate.next='';
+  saveData();closeModal();render();
+  setTimeout(function(){openBookSlot(candidateId);},300);
+}
+
+// ── Закрыть вакансию ─────────────────────────────────────────────
+function openCloseVacancy(){
+  modal('<h2>🔒 Закрыть вакансию</h2><p style="font-size:13px;color:#666;margin-bottom:16px">Все активные кандидаты получат статус «Вакансия закрыта» и будут заархивированы.</p><div class="fr"><label>Выбери вакансию</label><select id="closeVacSel">'+VACANCIES.map(function(v){return '<option>'+v+'</option>';}).join('')+'</select></div><div id="closeVacCount" style="font-size:13px;color:#888;margin-bottom:12px;padding:8px 10px;background:#f5f5f5;border-radius:6px;"></div><div class="mfoot" style="justify-content:space-between"><button class="btn" onclick="closeModal()">Отмена</button><button class="btn" style="background:#546E7A;color:#fff;border-color:#546E7A;font-weight:600" onclick="closeVacancy()">🔒 Закрыть вакансию</button></div>');
+  var sel=document.getElementById('closeVacSel');
+  function updateCount(){var vac=sel.value;var active=D.candidates.filter(function(c){return !c.archived&&!INACTIVE.includes(c.status)&&c.vacancy===vac;}).length;var total=D.candidates.filter(function(c){return c.vacancy===vac;}).length;var el2=document.getElementById('closeVacCount');if(el2)el2.textContent='Активных: '+active+' из '+total+' всего';}
+  sel.addEventListener('change',updateCount);updateCount();
+}
+
+function closeVacancy(){
+  var vac=document.getElementById('closeVacSel')&&document.getElementById('closeVacSel').value;
+  if(!vac)return;
+  var active=D.candidates.filter(function(c){return !c.archived&&!INACTIVE.includes(c.status)&&c.vacancy===vac;});
+  if(!active.length){alert('Нет активных кандидатов.');return;}
+  if(!confirm('Закрыть вакансию «'+vac+'»? '+active.length+' кандидатов будут заархивированы.'))return;
+  active.forEach(function(c){c.status='Вакансия закрыта';c.archived=true;});
+  D.history.push({date:todayStr(),cid:'',name:'Вакансия: '+vac,vacancy:vac,event:'Вакансия закрыта',desc:'Закрыто '+active.length+' кандидатов',result:'',resp:'Я'});
+  saveData();closeModal();render();
+}
+
+// ── Клики по данным воронки ───────────────────────────────────────
+window._funnelData={};
+
+document.addEventListener('click',function(e){
+  var slotEl=e.target.closest('[data-cid][data-si]');
+  if(slotEl){bookSlot(slotEl.getAttribute('data-cid'),parseInt(slotEl.getAttribute('data-si')));return;}
+  var fEl=e.target.closest('[data-fkey]');
+  if(fEl){showFunnelList(fEl.getAttribute('data-fkey'),fEl.getAttribute('data-flabel'));return;}
+  var mb=e.target.closest('.month-btn');
+  if(mb){setReportMonth(mb.getAttribute('data-from'),mb.getAttribute('data-to'));return;}
+});
+
+function showFunnelList(key,label){
+  var cands=window._funnelData[key]||[];
+  if(!cands.length)return;
+  var overlay=document.getElementById('funnelOverlay');
+  if(!overlay){overlay=document.createElement('div');overlay.id='funnelOverlay';overlay.style.cssText='position:fixed;inset:0;background:rgba(13,31,53,0.5);z-index:500;display:flex;align-items:center;justify-content:center;';document.body.appendChild(overlay);}
+  overlay.style.display='flex';
+  var rows=cands.map(function(c){return '<tr style="border-bottom:1px solid #eee"><td style="padding:8px 12px">'+(c.name||'')+'</td><td style="padding:8px 12px">'+(c.vacancy||'')+'</td><td style="padding:8px 12px">'+(c.status||'')+'</td><td style="padding:8px 12px;white-space:nowrap">'+(c.added||'')+'</td></tr>';}).join('');
+  overlay.innerHTML='<div style="background:#fff;border-radius:10px;padding:22px;width:820px;max-width:94vw;max-height:82vh;display:flex;flex-direction:column;box-shadow:0 8px 32px rgba(0,0,0,0.18);"><div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;"><h2 style="font-size:16px;font-weight:700;color:#1F3864;">'+label+' — '+cands.length+' чел.</h2><button id="closeFunnelOv" style="background:none;border:none;font-size:24px;cursor:pointer;color:#888;">&times;</button></div><div style="overflow-y:auto;flex:1;border:1px solid #e0e0e0;border-radius:6px;"><table style="width:100%;font-size:13px;border-collapse:collapse;"><thead><tr style="background:#1F3864;color:#fff;"><th style="padding:9px 12px;text-align:left;">ФИО</th><th style="padding:9px 12px;text-align:left;">Вакансия</th><th style="padding:9px 12px;text-align:left;">Статус</th><th style="padding:9px 12px;text-align:left;">Добавлен</th></tr></thead><tbody>'+rows+'</tbody></table></div><div style="padding-top:14px;text-align:right;border-top:1px solid #eee;margin-top:12px;"><button class="btn btn-primary" id="closeFunnelOv2">Закрыть</button></div></div>';
+  function closeOv(){overlay.style.display='none';}
+  document.getElementById('closeFunnelOv').onclick=closeOv;
+  document.getElementById('closeFunnelOv2').onclick=closeOv;
+  overlay.onclick=function(e){if(e.target===overlay)closeOv();};
+}
+
+function setReportMonth(from,to){
+  var f=document.getElementById('rFrom');var t=document.getElementById('rTo');
+  if(f)f.value=from;if(t)t.value=to;
+}
+
+// ── Воронка ───────────────────────────────────────────────────────
+function buildFunnel(){
+  window._funnelData={};
+  const pool=getReportPool();
+  const from=document.getElementById('rFrom').value,to=document.getElementById('rTo').value;
+  const selVacs=[...document.querySelectorAll('[name=rVac]:checked')].map(x=>x.value);
+  const allVac=selVacs.includes('__all__')||selVacs.length===0;
+  const period=(from?'с '+from.split('-').reverse().join('.')+' ':'')+(to?'по '+to.split('-').reverse().join('.'):'');
+  const vacLabel=allVac?'Все вакансии':selVacs.filter(x=>x!=='__all__').join(', ');
+  const total=pool.length;
+  function reached(c,level){return stageLevel(c.stage)>=level;}
+  function pct(a,b){return b>0?Math.round(a/b*100)+'%':'—';}
+  function mkKey(cands){var k='fk_'+Math.random().toString(36).slice(2,9);window._funnelData[k]=cands;return k;}
+  function fRow(icon,label,n,prev,base,green,cands){
+    var nCell;
+    if(cands&&cands.length){var k=mkKey(cands);var sl=label.replace(/&/g,'&amp;').replace(/"/g,'&quot;');nCell='<span data-fkey="'+k+'" data-flabel="'+sl+'" style="cursor:pointer;color:#1565c0;font-size:20px;font-weight:700;text-decoration:underline;text-decoration-style:dotted;" title="Показать список">'+n+' 👁</span>';}
+    else{nCell='<span style="font-size:20px;font-weight:700;color:#1F3864;">'+n+'</span>';}
+    return '<tr style="border-bottom:1px solid #e8ecf0'+(green?';background:#f0fff4':'')+'"><td style="padding:11px 14px;font-weight:600;font-size:13px">'+icon+' '+label+'</td><td style="padding:11px 14px;text-align:center;">'+nCell+'</td><td style="padding:11px 14px;text-align:center;font-size:13px;color:#888">'+pct(n,base)+'</td><td style="padding:11px 14px;text-align:center;font-size:13px;color:#555">'+(prev>0?pct(n,prev):'—')+'</td></tr>';
+  }
+  const hrAC=pool.filter(c=>reached(c,1));const hrA=hrAC.length;
+  const hrNS=pool.filter(c=>stageLevel(c.stage)===1&&c.status==='Не вышел на собеседование').length;
+  const hrDC=pool.filter(c=>reached(c,2));const hrD=hrDC.length;
+  const ropAC=pool.filter(c=>reached(c,3));const ropA=ropAC.length;
+  const ropNS=pool.filter(c=>stageLevel(c.stage)===3&&c.status==='Не вышел на собеседование').length;
+  const ropDC=pool.filter(c=>reached(c,4));const ropD=ropDC.length;
+  const ofC=pool.filter(c=>reached(c,5));const ofN=ofC.length;
+  const trC=pool.filter(c=>reached(c,6));const trN=trC.length;
+  const wkC=pool.filter(c=>reached(c,7));const wkN=wkC.length;
+  const totalRefuse=pool.filter(c=>REFUSE_STATUSES.includes(c.status)).length;
+  document.getElementById('reportResult').innerHTML=
+    '<div class="section-title" style="margin-top:0">📈 Воронка '+(period?'— '+period:'')+' | '+vacLabel+'</div>'+
+    '<div style="background:#fff;border:1px solid #c8d4e8;border-radius:8px;overflow:hidden;margin-bottom:12px">'+
+    '<table style="width:100%;border-collapse:collapse;font-size:13px"><thead><tr style="background:#1F3864;color:#fff"><th style="padding:10px 14px;text-align:left">Этап</th><th style="padding:10px 14px;text-align:center">Кол-во</th><th style="padding:10px 14px;text-align:center">% от откликов</th><th style="padding:10px 14px;text-align:center">% от пред. этапа</th></tr></thead><tbody>'+
+    '<tr style="background:#e3f2fd;border-bottom:1px solid #e8ecf0"><td style="padding:11px 14px;font-weight:700">📥 Отклики</td><td style="padding:11px 14px;text-align:center;font-size:22px;font-weight:700;color:#1F3864">'+total+'</td><td style="padding:11px 14px;text-align:center;color:#888">100%</td><td style="padding:11px 14px;text-align:center;color:#888">—</td></tr>'+
+    fRow('🗣️','Интервью HR — назначено',hrA,total,total,false,hrAC)+
+    fRow('✅','Интервью HR — проведено',hrD,hrA,total,true,hrDC)+
+    fRow('👔','Интервью с РОП — назначено',ropA,hrD,total,false,ropAC)+
+    fRow('✅','Интервью с РОП — проведено',ropD,ropA,total,true,ropDC)+
+    fRow('📄','Оффер',ofN,ropD,total,false,ofC)+
+    fRow('🎓','Обучение — начали',trN,ofN,total,false,trC)+
+    fRow('🏆','Вышел на работу',wkN,trN,total,true,wkC)+
+    '</tbody></table></div>'+
+    '<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px">'+
+    '<div class="report-card red"><div class="report-card-n">'+totalRefuse+'</div><div class="report-card-l">Всего отказов</div></div>'+
+    '<div class="report-card red"><div class="report-card-n">'+(hrNS+ropNS)+'</div><div class="report-card-l">Не вышли на собес</div></div>'+
+    '<div class="report-card green"><div class="report-card-n">'+wkN+'</div><div class="report-card-l">Вышли на работу ✅</div></div>'+
+    '</div>';
+}
+
+// ── openReport с быстрым выбором месяца ──────────────────────────
 function archiveAllInactive(){const count=D.candidates.filter(c=>!c.archived&&INACTIVE.includes(c.status)).length;if(!count){alert('Нет неактивных кандидатов.');return;}if(!confirm(`Архивировать всех неактивных (${count} чел.)?`))return;D.candidates.forEach(c=>{if(!c.archived&&INACTIVE.includes(c.status))c.archived=true;});saveData();render();}
 function deleteCandidate(id){const c=D.candidates.find(x=>x.id===id);if(!c)return;if(!confirm(`Удалить ${c.name} навсегда?`))return;D.candidates=D.candidates.filter(x=>x.id!==id);D.history=D.history.filter(x=>x.cid!==id);saveData();closeModal();render();}
 function openBulkDelete(){
@@ -579,33 +643,16 @@ function openBulkDelete(){
 }
 function updateDelCount(){const vac=document.getElementById('delVac')?.value;const count=D.candidates.filter(c=>c.vacancy===vac).length;const el=document.getElementById('delCount');if(el)el.textContent=`Будет удалено: ${count} кандидатов`;}
 function bulkDelete(){const vac=document.getElementById('delVac')?.value;const count=D.candidates.filter(c=>c.vacancy===vac).length;if(!count){alert('Нет кандидатов.');return;}if(!confirm(`Удалить ${count} кандидатов по "${vac}"?`))return;const ids=D.candidates.filter(c=>c.vacancy===vac).map(c=>c.id);D.candidates=D.candidates.filter(c=>c.vacancy!==vac);D.history=D.history.filter(h=>!ids.includes(h.cid));saveData();closeModal();render();}
-function setReportMonth(from,to){
-  var f=document.getElementById('rFrom');var t=document.getElementById('rTo');
-  if(f)f.value=from;if(t)t.value=to;
-}
 function openReport(){
+  var now2=new Date();var monthBtnsArr=[];
+  for(var mi=0;mi<6;mi++){var md=new Date(now2.getFullYear(),now2.getMonth()-mi,1);var my=md.getFullYear(),mm=String(md.getMonth()+1).padStart(2,'0');var mlabel=md.toLocaleDateString('ru-RU',{month:'long',year:'numeric'});var mfrom=my+'-'+mm+'-01';var mlast=new Date(my,md.getMonth()+1,0).getDate();var mto=my+'-'+mm+'-'+String(mlast).padStart(2,'0');monthBtnsArr.push('<button class="btn month-btn" style="font-size:11px;padding:5px 10px;" data-from="'+mfrom+'" data-to="'+mto+'">'+mlabel+'</button>');}
+  var monthBtnsHtml=monthBtnsArr.join('');
+
   const vacOpts=`<label class="rdd-row" style="background:#f5f5f5;font-weight:600"><input type="checkbox" name="rVac" value="__all__" checked onchange="rVacAll(this)"> ✅ Все вакансии</label>`+VACANCIES.map(v=>`<label class="rdd-row"><input type="checkbox" name="rVac" value="${v}" onchange="rVacOne()"> ${v}</label>`).join('');
   const stageOpts=STAGES.map(s=>`<label class="rdd-row"><input type="checkbox" name="rStage" value="${s}" onchange="rUpdateLbl('rStage','rStage_lbl','Все этапы')"> ${s}</label>`).join('');
   const statusOpts=STATUSES.map(s=>`<label class="rdd-row"><input type="checkbox" name="rStatus" value="${s}" onchange="rUpdateLbl('rStatus','rStatus_lbl','Все статусы')"> ${s}</label>`).join('')+`<label class="rdd-row" style="background:#fff5f5;font-weight:600"><input type="checkbox" name="rStatus" value="__all_refuse__" onchange="rUpdateLbl('rStatus','rStatus_lbl','Все статусы')"> 🔴 Все отказы вместе</label>`;
-  // Формируем кнопки быстрого выбора месяца
-  const now2=new Date();
-  const monthBtnsArr=[];
-  for(let mi=0;mi<6;mi++){
-    const md=new Date(now2.getFullYear(),now2.getMonth()-mi,1);
-    const my=md.getFullYear(),mm=String(md.getMonth()+1).padStart(2,'0');
-    const mlabel=md.toLocaleDateString('ru-RU',{month:'long',year:'numeric'});
-    const mfrom=my+'-'+mm+'-01';
-    const mlast=new Date(my,md.getMonth()+1,0).getDate();
-    const mto=my+'-'+mm+'-'+String(mlast).padStart(2,'0');
-        monthBtnsArr.push('<button class="btn month-btn" style="font-size:12px;padding:5px 10px;" data-from="'+mfrom+'" data-to="'+mto+'">'+mlabel+'</button>');
-  }
-  const monthBtnsHtml=monthBtnsArr.join('');
-
   modal(`<h2>📊 Отчёт по кандидатам</h2>
-<div style="margin-bottom:10px;">
-  <div style="font-size:11px;color:#888;font-weight:600;text-transform:uppercase;letter-spacing:0.05em;margin-bottom:6px;">Быстрый выбор периода:</div>
-  <div style="display:flex;gap:6px;flex-wrap:wrap;">${monthBtnsHtml}</div>
-</div>
+<div style="margin-bottom:10px;"><div style="font-size:11px;color:#888;font-weight:600;text-transform:uppercase;margin-bottom:6px;">Быстрый выбор периода:</div><div style="display:flex;gap:6px;flex-wrap:wrap;">${monthBtnsHtml}</div></div>
 <div class="f2" style="margin-bottom:12px"><div class="fr"><label>Период от</label><input type="date" id="rFrom"></div><div class="fr"><label>Период до</label><input type="date" id="rTo" value="${todayStr()}"></div></div>
 <div class="fr"><label>Вакансии</label><div style="border:1px solid #ddd;border-radius:6px;overflow:hidden;margin-top:4px"><div style="max-height:180px;overflow-y:auto;padding:4px 0">${vacOpts}</div><div style="border-top:1px solid #eee;padding:4px 10px;background:#fafafa"><button class="btn btn-sm" onclick="rVacReset()">Все</button> <span id="rVac_lbl" style="font-size:11px;color:#888;margin-left:6px">Все</span></div></div></div>
 <div class="f2" style="margin-top:10px">
@@ -643,116 +690,29 @@ function buildReport(){
   const tableRows=rows.map(c=>`<tr><td>${c.id}</td><td>${c.name}</td><td>${c.vacancy}</td><td>${c.stage}</td><td>${c.status}</td><td>${c.added||''}</td></tr>`).join('');
   document.getElementById('reportResult').innerHTML=`<div class="section-title" style="margin-top:0">Результат</div><div class="report-grid"><div class="report-card blue"><div class="report-card-n">${total}</div><div class="report-card-l">Всего</div></div><div class="report-card"><div class="report-card-n">${inWork}</div><div class="report-card-l">В работе</div></div><div class="report-card orange"><div class="report-card-n">${offer}</div><div class="report-card-l">Оффер</div></div><div class="report-card green"><div class="report-card-n">${training}</div><div class="report-card-l">На обучении</div></div><div class="report-card red"><div class="report-card-n">${refused}</div><div class="report-card-l">Всего отказов</div></div><div class="report-card red"><div class="report-card-n">${selfRefuse}</div><div class="report-card-l">Отказался сам</div></div><div class="report-card red"><div class="report-card-n">${noShow}</div><div class="report-card-l">Не вышел на собес</div></div><div class="report-card red"><div class="report-card-n">${compRefuse}</div><div class="report-card-l">Отказ компании</div></div></div>${total>0?`<div class="report-detail"><table><thead><tr><th>ID</th><th>ФИО</th><th>Вакансия</th><th>Этап</th><th>Статус</th><th>Добавлен</th></tr></thead><tbody>${tableRows}</tbody></table></div>`:'<div class="empty">Нет кандидатов</div>'}`;
 }
-// Данные для раскрытия списков воронки
-window._funnelData = {};
-
-document.addEventListener('click', function(e){
-  var slotEl=e.target.closest('[data-cid][data-si]');
-  if(slotEl){bookSlot(slotEl.getAttribute('data-cid'),parseInt(slotEl.getAttribute('data-si')));return;}
-  var t = e.target.closest ? e.target.closest('[data-fkey]') : null;
-  if(t){ showFunnelList(t.getAttribute('data-fkey'), t.getAttribute('data-flabel')); return; }
-  var mb = e.target.closest ? e.target.closest('.month-btn') : null;
-  if(mb){ setReportMonth(mb.getAttribute('data-from'), mb.getAttribute('data-to')); return; }
-});
-
-function showFunnelList(key, label){
-  var cands = window._funnelData[key] || [];
-  if(!cands.length) return;
-  var rows = cands.map(function(c){
-    return '<tr style="border-bottom:1px solid #eee"><td style="padding:8px 12px">'+(c.name||'')+'</td><td style="padding:8px 12px">'+(c.vacancy||'')+'</td><td style="padding:8px 12px">'+(c.status||'')+'</td><td style="padding:8px 12px;white-space:nowrap">'+(c.added||'')+'</td></tr>';
-  }).join('');
-  // Используем отдельный оверлей — не трогает основной mdl с отчётом
-  var overlay = document.getElementById('funnelOverlay');
-  if(!overlay){
-    overlay = document.createElement('div');
-    overlay.id = 'funnelOverlay';
-    overlay.style.cssText = 'position:fixed;inset:0;background:rgba(13,31,53,0.5);z-index:500;display:flex;align-items:center;justify-content:center;';
-    document.body.appendChild(overlay);
-  }
-  overlay.style.display = 'flex';
-  overlay.innerHTML =
-    '<div style="background:#fff;border-radius:10px;border:1px solid #ddd;padding:22px;width:820px;max-width:94vw;max-height:82vh;display:flex;flex-direction:column;box-shadow:0 8px 32px rgba(0,0,0,0.18);">' +
-    '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;">' +
-    '<h2 style="font-size:16px;font-weight:700;color:#1F3864;">' + label + ' — ' + cands.length + ' чел.</h2>' +
-    '<button id="closeFunnelOverlay" style="background:none;border:none;font-size:24px;cursor:pointer;color:#888;line-height:1;padding:0 4px;">&times;</button>' +
-    '</div>' +
-    '<div style="overflow-y:auto;flex:1;border:1px solid #e0e0e0;border-radius:6px;">' +
-    '<table style="width:100%;font-size:13px;border-collapse:collapse;">' +
-    '<thead><tr style="background:#1F3864;color:#fff;position:sticky;top:0;">' +
-    '<th style="padding:9px 12px;text-align:left;">ФИО</th>' +
-    '<th style="padding:9px 12px;text-align:left;">Вакансия</th>' +
-    '<th style="padding:9px 12px;text-align:left;">Статус</th>' +
-    '<th style="padding:9px 12px;text-align:left;">Добавлен</th>' +
-    '</tr></thead>' +
-    '<tbody>' + rows + '</tbody>' +
-    '</table></div>' +
-    '<div style="padding-top:14px;text-align:right;border-top:1px solid #eee;margin-top:12px;">' +
-    '<button class="btn btn-primary" id="closeFunnelOverlay2">Закрыть</button>' +
-    '</div></div>';
-  function closeOverlay(){ overlay.style.display='none'; }
-  document.getElementById('closeFunnelOverlay').onclick = closeOverlay;
-  document.getElementById('closeFunnelOverlay2').onclick = closeOverlay;
-  overlay.onclick = function(e){ if(e.target===overlay) closeOverlay(); };
-}
-
 function buildFunnel(){
-  window._funnelData={};
   const pool=getReportPool();
   const from=document.getElementById('rFrom').value,to=document.getElementById('rTo').value;
   const selVacs=[...document.querySelectorAll('[name=rVac]:checked')].map(x=>x.value);
   const allVac=selVacs.includes('__all__')||selVacs.length===0;
-  const period=(from?'с '+from.split('-').reverse().join('.')+' ':'')+(to?'по '+to.split('-').reverse().join('.'):'');
+  const period=(from?`с ${from.split('-').reverse().join('.')} `:'')+(to?`по ${to.split('-').reverse().join('.')}` :'');
   const vacLabel=allVac?'Все вакансии':selVacs.filter(x=>x!=='__all__').join(', ');
   const total=pool.length;
   function reached(c,level){return stageLevel(c.stage)>=level;}
-  function pct(a,b){return b>0?Math.round(a/b*100)+'%':'—';}
-  function mkKey(cands){var k='fk_'+Math.random().toString(36).slice(2,9);window._funnelData[k]=cands;return k;}
-  function fRow(icon,label,n,prev,base,green,cands){
-    var nCell;
-    if(cands&&cands.length){
-      var k=mkKey(cands);
-      nCell='<span data-fkey="'+k+'" data-flabel="'+label.replace(/&/g,'&amp;').replace(/"/g,'&quot;')+'" style="cursor:pointer;color:#1565c0;font-size:20px;font-weight:700;text-decoration:underline;text-decoration-style:dotted;" title="Показать список">'+n+' 👁</span>';
-    }else{
-      nCell='<span style="font-size:20px;font-weight:700;color:#1F3864;">'+n+'</span>';
-    }
-    return '<tr style="border-bottom:1px solid #e8ecf0'+(green?';background:#f0fff4':'')+'">'+'<td style="padding:11px 14px;font-weight:600;font-size:13px">'+icon+' '+label+'</td>'+'<td style="padding:11px 14px;text-align:center;">'+nCell+'</td>'+'<td style="padding:11px 14px;text-align:center;font-size:13px;color:#888">'+pct(n,base)+'</td>'+'<td style="padding:11px 14px;text-align:center;font-size:13px;color:#555">'+(prev>0?pct(n,prev):'—')+'</td>'+'</tr>';
-  }
-  const hrAC=pool.filter(c=>reached(c,1));const hrA=hrAC.length;
-  const hrNS=pool.filter(c=>stageLevel(c.stage)===1&&c.status==='Не вышел на собеседование').length;
-  const hrDC=pool.filter(c=>reached(c,2));const hrD=hrDC.length;
-  const ropAC=pool.filter(c=>reached(c,3));const ropA=ropAC.length;
-  const ropNS=pool.filter(c=>stageLevel(c.stage)===3&&c.status==='Не вышел на собеседование').length;
-  const ropDC=pool.filter(c=>reached(c,4));const ropD=ropDC.length;
-  const ofC=pool.filter(c=>reached(c,5));const ofN=ofC.length;
-  const trC=pool.filter(c=>reached(c,6));const trN=trC.length;
-  const wkC=pool.filter(c=>reached(c,7));const wkN=wkC.length;
+  const hrAssigned=pool.filter(c=>reached(c,1)).length;
+  const hrNoShow=pool.filter(c=>stageLevel(c.stage)===1&&c.status==='Не вышел на собеседование').length;
+  const hrDone=pool.filter(c=>reached(c,2)).length;
+  const ropAssigned=pool.filter(c=>reached(c,3)).length;
+  const ropNoShow=pool.filter(c=>stageLevel(c.stage)===3&&c.status==='Не вышел на собеседование').length;
+  const ropDone=pool.filter(c=>reached(c,4)).length;
+  const offerCount=pool.filter(c=>reached(c,5)).length;
+  const trainCount=pool.filter(c=>reached(c,6)).length;
+  const workCount=pool.filter(c=>reached(c,7)).length;
   const totalRefuse=pool.filter(c=>REFUSE_STATUSES.includes(c.status)).length;
-  document.getElementById('reportResult').innerHTML=
-    '<div class="section-title" style="margin-top:0">📈 Воронка '+(period?'— '+period:'')+' | '+vacLabel+'</div>'+
-    '<div style="background:#fff;border:1px solid #c8d4e8;border-radius:8px;overflow:hidden;margin-bottom:12px">'+
-    '<table style="width:100%;border-collapse:collapse;font-size:13px">'+
-    '<thead><tr style="background:#1F3864;color:#fff">'+
-    '<th style="padding:10px 14px;text-align:left">Этап</th>'+
-    '<th style="padding:10px 14px;text-align:center">Кол-во</th>'+
-    '<th style="padding:10px 14px;text-align:center">% от откликов</th>'+
-    '<th style="padding:10px 14px;text-align:center">% от пред. этапа</th>'+
-    '</tr></thead><tbody>'+
-    '<tr style="background:#e3f2fd;border-bottom:1px solid #e8ecf0"><td style="padding:11px 14px;font-weight:700">📥 Отклики</td><td style="padding:11px 14px;text-align:center;font-size:22px;font-weight:700;color:#1F3864">'+total+'</td><td style="padding:11px 14px;text-align:center;color:#888">100%</td><td style="padding:11px 14px;text-align:center;color:#888">—</td></tr>'+
-    fRow('🗣️','Интервью HR — назначено',hrA,total,total,false,hrAC)+
-    fRow('✅','Интервью HR — проведено',hrD,hrA,total,true,hrDC)+
-    fRow('👔','Интервью с РОП — назначено',ropA,hrD,total,false,ropAC)+
-    fRow('✅','Интервью с РОП — проведено',ropD,ropA,total,true,ropDC)+
-    fRow('📄','Оффер',ofN,ropD,total,false,ofC)+
-    fRow('🎓','Обучение — начали',trN,ofN,total,false,trC)+
-    fRow('🏆','Вышел на работу',wkN,trN,total,true,wkC)+
-    '</tbody></table></div>'+
-    '<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px">'+
-    '<div class="report-card red"><div class="report-card-n">'+totalRefuse+'</div><div class="report-card-l">Всего отказов</div></div>'+
-    '<div class="report-card red"><div class="report-card-n">'+(hrNS+ropNS)+'</div><div class="report-card-l">Не вышли на собес</div></div>'+
-    '<div class="report-card green"><div class="report-card-n">'+wkN+'</div><div class="report-card-l">Вышли на работу ✅</div></div>'+
-    '</div>';
+  function pct(a,b){return b>0?Math.round(a/b*100)+'%':'—';}
+  function fRow(icon,label,n,prev,base,green){return `<tr style="border-bottom:1px solid #e8ecf0${green?';background:#f0fff4':''}"><td style="padding:11px 14px;font-weight:600;font-size:13px">${icon} ${label}</td><td style="padding:11px 14px;text-align:center;font-size:20px;font-weight:700;color:#1F3864">${n}</td><td style="padding:11px 14px;text-align:center;font-size:13px;color:#888">${pct(n,base)}</td><td style="padding:11px 14px;text-align:center;font-size:13px;color:#555">${prev>0?pct(n,prev):'—'}</td></tr>`;}
+  document.getElementById('reportResult').innerHTML=`<div class="section-title" style="margin-top:0">📈 Воронка ${period?'— '+period:''} | ${vacLabel}</div><div style="background:#fff;border:1px solid #c8d4e8;border-radius:8px;overflow:hidden;margin-bottom:12px"><table style="width:100%;border-collapse:collapse;font-size:13px"><thead><tr style="background:#1F3864;color:#fff"><th style="padding:10px 14px;text-align:left">Этап</th><th style="padding:10px 14px;text-align:center">Кол-во</th><th style="padding:10px 14px;text-align:center">% от откликов</th><th style="padding:10px 14px;text-align:center">% от пред. этапа</th></tr></thead><tbody><tr style="background:#e3f2fd;border-bottom:1px solid #e8ecf0"><td style="padding:11px 14px;font-weight:700">📥 Отклики</td><td style="padding:11px 14px;text-align:center;font-size:22px;font-weight:700;color:#1F3864">${total}</td><td style="padding:11px 14px;text-align:center;color:#888">100%</td><td style="padding:11px 14px;text-align:center;color:#888">—</td></tr>${fRow('🗣️','Интервью HR — назначено',hrAssigned,total,total,false)}${fRow('✅','Интервью HR — проведено',hrDone,hrAssigned,total,true)}${fRow('👔','Интервью с РОП — назначено',ropAssigned,hrDone,total,false)}${fRow('✅','Интервью с РОП — проведено',ropDone,ropAssigned,total,true)}${fRow('📄','Оффер',offerCount,ropDone,total,false)}${fRow('🎓','Обучение — начали',trainCount,offerCount,total,false)}${fRow('🏆','Вышел на работу',workCount,trainCount,total,true)}</tbody></table></div><div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px"><div class="report-card red"><div class="report-card-n">${totalRefuse}</div><div class="report-card-l">Всего отказов</div></div><div class="report-card red"><div class="report-card-n">${hrNoShow+ropNoShow}</div><div class="report-card-l">Не вышли на собес</div></div><div class="report-card green"><div class="report-card-n">${workCount}</div><div class="report-card-l">Вышли на работу ✅</div></div></div>`;
 }
-
 let pendingPdfName='';
 function loadPDFJS(){return new Promise((resolve,reject)=>{if(typeof pdfjsLib!=='undefined'){resolve();return;}const s=document.createElement('script');s.src='https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.min.js';s.onload=()=>{pdfjsLib.GlobalWorkerOptions.workerSrc='https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.worker.min.js';resolve();};s.onerror=reject;document.head.appendChild(s);});}
 function extractFromPDFText(text){const result={name:'',phone:''};const nm=text.substring(0,500).match(/([А-Я][а-я]+)\s+([А-Я][а-я]+)\s+([А-Я][а-я]+)/);if(nm)result.name=nm[0];const m=text.match(/(?:\+7|8|7)[\s\-\(\)]*(\d{3})[\s\-\(\)]*(\d{3})[\s\-\(\)]*(\d{2})[\s\-\(\)]*(\d{2})/);if(m)result.phone='+7'+m[1]+m[2]+m[3]+m[4];else{const sd=text.match(/\d{10}/);if(sd)result.phone='+7'+sd[0];}return result;}
@@ -797,18 +757,48 @@ function openEdit(id){
 <div class="fr"><label>Комментарий</label><textarea id="fco">${c.comment||''}</textarea></div>
 <div class="fr"><label>Ссылка на резюме</label><input id="frl" value="${c.resumeLink||''}"></div>
 <div class="fr"><label>Ссылка на HH</label><input id="fhh" value="${c.hhLink||''}"></div>
-<div class="mfoot" style="justify-content:space-between;flex-wrap:wrap;gap:8px;padding-top:14px;border-top:1px solid #eee;margin-top:4px;">
+<div class="mfoot" style="justify-content:space-between;flex-wrap:wrap;gap:8px;padding-top:14px;border-top:1px solid #eee;">
 <div style="display:flex;gap:6px;flex-wrap:wrap;">
 <button class="btn" style="color:#1565c0;border-color:#90caf9;background:#e3f2fd;" onclick="saveEditThenHist('${id}')">📋 Событие</button>
 <button class="btn" style="color:#555;border-color:#ccc;" onclick="archiveCandidate('${id}')">🗄 Архив</button>
 <button class="btn" style="color:#c62828;border-color:#ef9a9a;background:#fff5f5;" onclick="deleteCandidate('${id}')">🗑 Удалить</button>
 </div>
-<div style="display:flex;gap:6px;flex-wrap:wrap;">
-<button class="btn" style="background:#1976d2;color:#fff;border-color:#1976d2;font-weight:700;" onclick="openBookSlot('${id}')">📅 Назначить встречу</button>
+<div style="display:flex;gap:6px;flex-wrap:wrap;" id="meetBtnsContainer_${id}">
+<span id="meetBtnsPlaceholder_${id}"></span>
 <button class="btn" onclick="closeModal()">Отмена</button>
 <button class="btn btn-primary" onclick="saveEdit('${id}')">💾 Сохранить</button>
 </div>
-</div>
+</div>`);
+  // Inject meeting buttons
+  var _cand = D.candidates.find(x=>x.id===id);
+  var _hasMeeting = _cand && _cand.meetTime && _cand.meetTime !== '--:--' && _cand.meetTime !== '';
+  setTimeout(function(){
+    var ph = document.getElementById('meetBtnsPlaceholder_'+id);
+    if(!ph) return;
+    if(_hasMeeting){
+      ph.outerHTML = '<button class="btn" style="background:#e3f2fd;color:#1565c0;border-color:#90caf9;" onclick="openSendInviteAgain(\''+id+'\')">📨 Повторить приглашение</button>'+
+        '<button class="btn" style="background:#fff3e0;color:#e65100;border-color:#ffcc80;" onclick="releaseSlot(\''+id+'\')">🔄 Изменить встречу</button>';
+    } else {
+      ph.outerHTML = '<button class="btn" style="background:#1976d2;color:#fff;border-color:#1976d2;font-weight:700;" onclick="openBookSlot(\''+id+'\')">📅 Назначить встречу</button>';
+    }
+  }, 80);
+}
+function saveEdit(id){
+  const c=D.candidates.find(x=>x.id===id);if(!c)return;
+  c.added=document.getElementById('fa')?.value||c.added;c.name=document.getElementById('fn')?.value.trim()||c.name;c.vacancy=document.getElementById('fv')?.value||c.vacancy;c.source=document.getElementById('fs')?.value||'';c.contacts=document.getElementById('fphone')?.value.trim()||'';c.stage=document.getElementById('fst')?.value||c.stage;c.status=document.getElementById('fsts')?.value||c.status;c.next=document.getElementById('fnx')?.value||'';c.nextDate=document.getElementById('fnd')?.value||'';c.comment=document.getElementById('fco')?.value||'';c.resumeLink=document.getElementById('frl')?.value||'';c.meetTime=document.getElementById('fmt')?.value||'';c.hhLink=document.getElementById('fhh')?.value||'';
+  if(document.getElementById('frr'))c.refuseReason=document.getElementById('frr').value;
+  if(!REFUSE_STATUSES.includes(c.status))c.refuseReason='';
+  saveData();closeModal();render();
+}
+function saveEditThenHist(id){
+  const c=D.candidates.find(x=>x.id===id);
+  if(c){c.added=document.getElementById('fa')?.value||c.added;c.name=document.getElementById('fn')?.value.trim()||c.name;c.vacancy=document.getElementById('fv')?.value||c.vacancy;c.source=document.getElementById('fs')?.value||'';c.contacts=document.getElementById('fphone')?.value.trim()||'';c.stage=document.getElementById('fst')?.value||c.stage;c.status=document.getElementById('fsts')?.value||c.status;c.next=document.getElementById('fnx')?.value||'';c.nextDate=document.getElementById('fnd')?.value||'';c.comment=document.getElementById('fco')?.value||'';c.resumeLink=document.getElementById('frl')?.value||'';c.meetTime=document.getElementById('fmt')?.value||'';c.hhLink=document.getElementById('fhh')?.value||'';if(document.getElementById('frr'))c.refuseReason=document.getElementById('frr').value;if(!REFUSE_STATUSES.includes(c.status))c.refuseReason='';saveData();}
+  openHist(id);
+}
+function openHist(id){
+  const c=D.candidates.find(x=>x.id===id);if(!c)return;
+  modal(`<h2>📋 Событие — ${c.name}</h2>
+<div class="fr"><label>Дата</label><input type="date" id="hd" value="${todayStr()}"></div>
 <div class="fr"><label>Тип события</label><select id="he">${sel(EVENTS,'Интервью HR — назначено')}</select></div>
 <div class="fr"><label>Описание</label><textarea id="hds"></textarea></div>
 <div class="fr"><label>Результат</label><input id="hr"></div>
