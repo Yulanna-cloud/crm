@@ -527,11 +527,11 @@ function openSendInvite(candidateId,slot){
   if(!candidate)return;
   var parts=slot.time.split(':');
   var h=parseInt(parts[0]);var m=parts[1];
-  var mskH=h-2;if(mskH<0)mskH+=24; // Уфа(+5) → МСК(+3): минус 2 часа
+  // Уфа +5, МСК +3 → минус 2 часа
+  var mskH=h-2;if(mskH<0)mskH+=24;
   var mskTime=String(mskH).padStart(2,'0')+':'+m+' (МСК)';
-  var kazTime=slot.time+' (Казань)';
   var vacancy=candidate.vacancy||'';
-  var text='Добрый день!\nПриглашаю Вас на видео-встречу по вакансии '+vacancy+'\nДата и время: '+slot.date+' в '+mskTime+' / '+kazTime+'\nСсылка-приглашение: '+ZOOM_LINK+'\n\nСообщите заранее, пожалуйста, если не сможете подключиться к встрече в запланированное время.';
+  var text='Добрый день!\nПриглашаю Вас на видео-встречу по вакансии '+vacancy+'\nДата и время: '+slot.date+' в '+mskTime+'\nСсылка-приглашение: '+ZOOM_LINK+'\n\nСообщите заранее, пожалуйста, если не сможете подключиться к встрече в запланированное время.';
   var encodedText=encodeURIComponent(text);
   var phone=(candidate.contacts||'').replace(/\D/g,'');
   var tgLink='https://t.me/share/url?url=&text='+encodedText;
