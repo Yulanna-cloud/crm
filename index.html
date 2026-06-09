@@ -787,7 +787,7 @@ function openEdit(id){
 <button class="btn" style="color:#c62828;border-color:#ef9a9a;background:#fff5f5;" onclick="deleteCandidate('${id}')">🗑 Удалить</button>
 </div>
 <div style="display:flex;gap:6px;flex-wrap:wrap;">
-<button class="btn" style="background:#1976d2;color:#fff;border-color:#1976d2;font-weight:700;" onclick="saveEdit('${id}');setTimeout(function(){openBookSlot('${id}');},400)">📅 Назначить встречу</button>
+<button class="btn" style="background:#1976d2;color:#fff;border-color:#1976d2;font-weight:700;" onclick="openBookSlot('${id}')">📅 Назначить встречу</button>
 <button class="btn" onclick="closeModal()">Отмена</button>
 <button class="btn btn-primary" onclick="saveEdit('${id}')">💾 Сохранить</button>
 </div>
