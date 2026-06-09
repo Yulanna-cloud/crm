@@ -464,7 +464,7 @@ function openSlotsManager(){
     '<p style="font-size:12px;color:#666;margin-bottom:14px">Добавь свободные временные слоты. Во время звонка выбирай слот из карточки кандидата.</p>'+
     '<div class="f2" style="margin-bottom:8px;">'+
     '<div class="fr"><label>Дата</label><input type="date" id="slotDate" value="'+todayStr()+'"></div>'+
-    '<div class="fr"><label>Время (твоё, Казань)</label><input type="time" id="slotTime" value="10:00"></div>'+
+    ('<div class="fr"><label>Время (твоё, Уфа +5)</label><input type="time" id="slotTime" value="10:00"></div>')+
     '</div>'+
     '<button class="btn btn-primary" style="margin-bottom:16px;width:100%;" onclick="addSlot()">+ Добавить слот</button>'+
     '<div id="slotsList">'+slotRows+'</div>'+
@@ -527,7 +527,7 @@ function openSendInvite(candidateId,slot){
   if(!candidate)return;
   var parts=slot.time.split(':');
   var h=parseInt(parts[0]);var m=parts[1];
-  var mskH=h-2;if(mskH<0)mskH+=24;
+  var mskH=h-2;if(mskH<0)mskH+=24; // Уфа(+5) → МСК(+3): минус 2 часа
   var mskTime=String(mskH).padStart(2,'0')+':'+m+' (МСК)';
   var kazTime=slot.time+' (Казань)';
   var vacancy=candidate.vacancy||'';
@@ -780,14 +780,14 @@ function openEdit(id){
 <div class="fr"><label>Комментарий</label><textarea id="fco">${c.comment||''}</textarea></div>
 <div class="fr"><label>Ссылка на резюме</label><input id="frl" value="${c.resumeLink||''}"></div>
 <div class="fr"><label>Ссылка на HH</label><input id="fhh" value="${c.hhLink||''}"></div>
-<div class="mfoot" style="justify-content:space-between;flex-wrap:wrap;gap:8px;">
+<div class="mfoot" style="justify-content:space-between;flex-wrap:wrap;gap:8px;padding-top:14px;border-top:1px solid #eee;margin-top:4px;">
 <div style="display:flex;gap:6px;flex-wrap:wrap;">
-<button class="btn" style="color:#A32D2D" onclick="saveEditThenHist('${id}')">📋 + Событие</button>
-<button class="btn" style="color:#888;font-size:12px" onclick="archiveCandidate('${id}')">🗄 В архив</button>
-<button class="btn" style="color:#c62828;font-size:12px;border-color:#ef9a9a" onclick="deleteCandidate('${id}')">🗑 Удалить</button>
+<button class="btn" style="color:#1565c0;border-color:#90caf9;background:#e3f2fd;" onclick="saveEditThenHist('${id}')">📋 Событие</button>
+<button class="btn" style="color:#555;border-color:#ccc;" onclick="archiveCandidate('${id}')">🗄 Архив</button>
+<button class="btn" style="color:#c62828;border-color:#ef9a9a;background:#fff5f5;" onclick="deleteCandidate('${id}')">🗑 Удалить</button>
 </div>
 <div style="display:flex;gap:6px;flex-wrap:wrap;">
-<button class="btn btn-primary" style="background:#1976d2;border-color:#1976d2;" onclick="saveEdit('${id}');setTimeout(function(){openBookSlot('${id}');},300)">📅 Назначить встречу</button>
+<button class="btn" style="background:#1976d2;color:#fff;border-color:#1976d2;font-weight:700;" onclick="saveEdit('${id}');setTimeout(function(){openBookSlot('${id}');},400)">📅 Назначить встречу</button>
 <button class="btn" onclick="closeModal()">Отмена</button>
 <button class="btn btn-primary" onclick="saveEdit('${id}')">💾 Сохранить</button>
 </div>
