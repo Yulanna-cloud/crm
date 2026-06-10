@@ -578,8 +578,10 @@ function openBookSlot(candidateId){
 
 function bookSlot(cid,si){
   var cand=D.candidates.find(function(x){return x.id===cid;});if(!cand)return;
-  var all=getSlots(),free=all.filter(function(s){return !s.taken;}),slot=free[si];if(!slot)return;
-  var ri=all.indexOf(slot);all[ri].taken=true;all[ri].takenBy=cand.name;saveSlots(all);
+  var all=getSlots();
+  // si теперь реальный индекс в массиве
+  var slot=all[si];if(!slot)return;
+  all[si].taken=true;all[si].takenBy=cand.name;saveSlots(all);
   cand.nextDate=slot.dateRaw;cand.meetTime=slot.time;cand.next='Видео-интервью';
   saveData();closeModal();render();openSendInvite(cid,slot);
 }
@@ -630,7 +632,8 @@ function releaseSlot(cid){
   var all=getSlots(),i=all.findIndex(function(s){return s.taken&&s.takenBy===cand.name;});
   if(i>-1){all[i].taken=false;all[i].takenBy='';saveSlots(all);}
   cand.meetTime='';cand.nextDate='';cand.next='';
-  saveData();closeModal();render();setTimeout(function(){openBookSlot(cid);},300);
+  saveData();closeModal();render();
+  setTimeout(function(){openBookSlot(cid);},300);
 }
 
 function openOfficeInvite(cid){
