@@ -567,10 +567,10 @@ function openBookSlot(candidateId){
     return true;
   });
   if(!slots.length){alert('Нет свободных предстоящих слотов.\nДобавь их в Настройки → Мои слоты');return;}
-  // Индексы относительно полного массива для bookSlot
   var allSlots=getSlots();
   var rows=slots.map(function(s){
-    var realIdx=allSlots.indexOf(s);
+    // Ищем по dateRaw+time чтобы получить правильный индекс
+    var realIdx=allSlots.findIndex(function(x){return x.dateRaw===s.dateRaw&&x.time===s.time&&!x.taken;});
     return '<div class="slot-item free" data-cid="'+candidateId+'" data-si="'+realIdx+'"><div><span class="slot-time">'+s.time+'</span> <span style="font-size:13px;color:#555;margin-left:8px;">'+s.date+'</span></div><span style="color:#2e7d32;font-size:13px;">✓ выбрать</span></div>';
   }).join('');
   modal('<h2>📅 Выбери время встречи</h2><p style="font-size:12px;color:#666;margin-bottom:12px">'+cand.name+'</p>'+rows+'<div class="mfoot"><button class="btn" onclick="closeModal()">Отмена</button></div>');
