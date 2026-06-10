@@ -865,7 +865,11 @@ function saveNew(){
   const name=document.getElementById('fn')?.value.trim();if(!name){alert('Введите ФИО');return;}
   D.candidates.push({id:document.getElementById('fi')?.value||nextId(),added:document.getElementById('fa')?.value||todayStr(),name,vacancy:document.getElementById('fv')?.value||VACANCIES[0],contacts:document.getElementById('fphone')?.value.trim()||'',source:document.getElementById('fs')?.value||'',stage:document.getElementById('fst')?.value||'Отклик',status:document.getElementById('fsts')?.value||'В работе',next:document.getElementById('fnx')?.value||'',nextDate:document.getElementById('fnd')?.value||'',comment:document.getElementById('fco')?.value||'',resumeLink:document.getElementById('frl')?.value||'',meetTime:document.getElementById('fmt')?.value||'',hhLink:document.getElementById('fhh')?.value||'',pdfName:pendingPdfName,refuseReason:document.getElementById('frr')?.value||''});
   D.history.push({date:todayStr(),cid:D.candidates[D.candidates.length-1].id,name,vacancy:document.getElementById('fv')?.value||'',event:'Добавлен кандидат',desc:'',result:'',resp:'Я'});
-  saveData();closeModal();render();
+  saveData();render();
+  // После добавления — сразу открываем карточку редактирования
+  const newId = D.candidates[D.candidates.length-1].id;
+  closeModal();
+  setTimeout(function(){ openEdit(newId); }, 100);
 }
 function openEdit(id){
   const c=D.candidates.find(x=>x.id===id);if(!c)return;
