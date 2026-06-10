@@ -505,15 +505,44 @@ function saveManagerEdits(){
 
 function openSlotsManager(){
   var slots=getSlots();
-  var rows=slots.length?slots.map(function(s,i){
-    return '<div class="slot-item '+(s.taken?'taken':'free')+'"><div><span class="slot-time">'+s.time+'</span> <span style="color:#555;">'+s.date+'</span>'+(s.taken?' <span style="font-size:11px;color:#a02020;">занят: '+s.takenBy+'</span>':'')+'</div><button class="btn btn-sm" style="color:#c62828;border-color:#ef9a9a;" onclick="deleteSlot('+i+')">✕</button></div>';
-  }).join(''):'<p style="color:#aaa;font-size:13px;">Нет слотов.</p>';
-  modal('<h2>📅 Мои слоты для встреч</h2><p style="font-size:12px;color:#666;margin-bottom:12px">Добавляй своё время (Уфа +5). В карточке кандидата нажми «Назначить встречу» чтобы выбрать слот.</p><div class="f2" style="margin-bottom:8px;"><div class="fr"><label>Дата</label><input type="date" id="slotDate" value="'+todayStr()+'"></div><div class="fr"><label>Время (Уфа +5)</label><input type="time" id="slotTime" value="10:00"></div></div><button class="btn btn-primary" style="width:100%;margin-bottom:14px;" onclick="addSlot()">+ Добавить слот</button><div id="slotsList">'+rows+'</div><div class="mfoot"><button class="btn" onclick="closeModal()">Закрыть</button></div>');
+  var today=todayStr();
+  // Последняя выбранная дата или завтра
+  var lastDate=localStorage.getItem('crm_last_slot_date')||'';
+  if(!lastDate||lastDate<today){
+    // Вычисляем завтра
+    var tm=new Date();tm.setDate(tm.getDate()+1);
+    lastDate=tm.toISOString().slice(0,10);
+  }
+  // Разделяем на актуальные и прошедшие
+  var future=slots.filter(function(s){return s.dateRaw>=today;});
+  var past=slots.filter(function(s){return s.dateRaw<today;});
+  var rows=future.length?future.map(function(s,i){
+    var realIdx=slots.indexOf(s);
+    return '<div class="slot-item '+(s.taken?'taken':'free')+'"><div><span class="slot-time">'+s.time+'</span> <span style="color:#555;margin-left:8px;">'+s.date+'</span>'+(s.taken?' <span style="font-size:11px;color:#a02020;margin-left:6px;">занят: '+s.takenBy+'</span>':'')+'</div><button class="btn btn-sm" style="color:#c62828;border-color:#ef9a9a;" onclick="deleteSlot('+realIdx+')">✕</button></div>';
+  }).join(''):'<p style="color:#aaa;font-size:13px;padding:8px 0;">Нет предстоящих слотов.</p>';
+  var pastInfo=past.length?'<div style="font-size:11px;color:#aaa;margin-top:8px;">Прошедших слотов: '+past.length+' <button class="btn btn-sm" style="font-size:11px;" onclick="clearPastSlots()">Удалить прошедшие</button></div>':'';
+  modal('<h2>📅 Мои слоты для встреч</h2>'+
+    '<p style="font-size:12px;color:#666;margin-bottom:12px">Добавляй своё время (Уфа +5). В карточке кандидата нажми «Назначить встречу» чтобы выбрать слот.</p>'+
+    '<div class="f2" style="margin-bottom:8px;">'+
+    '<div class="fr"><label>Дата</label><input type="date" id="slotDate" value="'+lastDate+'"></div>'+
+    '<div class="fr"><label>Время (Уфа +5)</label><input type="time" id="slotTime" value="10:00"></div>'+
+    '</div>'+
+    '<button class="btn btn-primary" style="width:100%;margin-bottom:14px;" onclick="addSlot()">+ Добавить слот</button>'+
+    '<div id="slotsList">'+rows+'</div>'+
+    pastInfo+
+    '<div class="mfoot"><button class="btn" onclick="closeModal()">Закрыть</button></div>');
+}
+
+function clearPastSlots(){
+  var today=todayStr();
+  var slots=getSlots().filter(function(s){return s.dateRaw>=today;});
+  saveSlots(slots);openSlotsManager();
 }
 
 function addSlot(){
   var date=document.getElementById('slotDate').value,time=document.getElementById('slotTime').value;
   if(!date||!time){alert('Выбери дату и время');return;}
+  localStorage.setItem('crm_last_slot_date',date); // запоминаем дату
   var slots=getSlots();
   var d=new Date(date+'T12:00:00');
   var ds=d.toLocaleDateString('ru-RU',{day:'2-digit',month:'2-digit',year:'numeric'});
