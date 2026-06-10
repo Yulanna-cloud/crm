@@ -556,10 +556,22 @@ function deleteSlot(i){var s=getSlots();s.splice(i,1);saveSlots(s);openSlotsMana
 function openBookSlot(candidateId){
   var cand=D.candidates.find(function(x){return x.id===candidateId;});
   if(!cand)return;
-  var slots=getSlots().filter(function(s){return !s.taken;});
-  if(!slots.length){alert('Нет свободных слотов. Добавь в Настройки → Мои слоты');return;}
-  var rows=slots.map(function(s,i){
-    return '<div class="slot-item free" data-cid="'+candidateId+'" data-si="'+i+'"><div><span class="slot-time">'+s.time+'</span> <span style="font-size:13px;color:#555;">'+s.date+'</span></div><span style="color:#2e7d32;">✓ выбрать</span></div>';
+  var now=new Date();
+  var todayDate=todayStr();
+  var currentTime=String(now.getHours()).padStart(2,'0')+':'+String(now.getMinutes()).padStart(2,'0');
+  // Только свободные И будущие слоты
+  var slots=getSlots().filter(function(s){
+    if(s.taken)return false;
+    if(s.dateRaw<todayDate)return false;
+    if(s.dateRaw===todayDate&&s.time<=currentTime)return false;
+    return true;
+  });
+  if(!slots.length){alert('Нет свободных предстоящих слотов.\nДобавь их в Настройки → Мои слоты');return;}
+  // Индексы относительно полного массива для bookSlot
+  var allSlots=getSlots();
+  var rows=slots.map(function(s){
+    var realIdx=allSlots.indexOf(s);
+    return '<div class="slot-item free" data-cid="'+candidateId+'" data-si="'+realIdx+'"><div><span class="slot-time">'+s.time+'</span> <span style="font-size:13px;color:#555;margin-left:8px;">'+s.date+'</span></div><span style="color:#2e7d32;font-size:13px;">✓ выбрать</span></div>';
   }).join('');
   modal('<h2>📅 Выбери время встречи</h2><p style="font-size:12px;color:#666;margin-bottom:12px">'+cand.name+'</p>'+rows+'<div class="mfoot"><button class="btn" onclick="closeModal()">Отмена</button></div>');
 }
