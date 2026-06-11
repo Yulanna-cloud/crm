@@ -926,7 +926,13 @@ function openEdit(id){
 <button class="btn" onclick="closeModal()">Отмена</button>
 <button class="btn btn-primary" onclick="saveEdit('${id}')">💾 Сохранить</button>
 </div>
-</div>`);
+</div>
+${(()=>{
+  const hist=D.history.filter(h=>h.cid===c.id).slice(0,15);
+  if(!hist.length) return '';
+  const rows=hist.map(h=>'<tr style="border-bottom:1px solid #f0f0f0;"><td style="padding:6px 10px;white-space:nowrap;font-size:12px;color:#666;">'+h.date+'</td><td style="padding:6px 10px;font-size:12px;font-weight:600;">'+escHtml(h.event||'')+'</td><td style="padding:6px 10px;font-size:12px;color:#444;">'+escHtml(h.desc||'')+'</td></tr>').join('');
+  return '<hr style="margin:16px 0;border-color:#eee;"><div style="font-size:11px;font-weight:700;color:#1F3864;text-transform:uppercase;letter-spacing:0.05em;margin-bottom:8px;">📋 История кандидата</div><div style="max-height:180px;overflow-y:auto;border:1px solid #e8ecf0;border-radius:6px;"><table style="width:100%;border-collapse:collapse;"><tbody>'+rows+'</tbody></table></div>';
+})()}`);
   var _ec=D.candidates.find(x=>x.id===id);
   var _hm=_ec&&_ec.meetTime&&_ec.meetTime!=='--:--'&&_ec.meetTime!=='';
   setTimeout(function(){
@@ -939,9 +945,39 @@ function openEdit(id){
 }
 function saveEdit(id){
   const c=D.candidates.find(x=>x.id===id);if(!c)return;
+  // Запоминаем старый этап и статус для истории
+  const oldStage=c.stage||'';
+  const oldStatus=c.status||'';
   c.added=document.getElementById('fa')?.value||c.added;c.name=document.getElementById('fn')?.value.trim()||c.name;c.vacancy=document.getElementById('fv')?.value||c.vacancy;c.source=document.getElementById('fs')?.value||'';c.contacts=document.getElementById('fphone')?.value.trim()||'';c.stage=document.getElementById('fst')?.value||c.stage;c.status=document.getElementById('fsts')?.value||c.status;c.next=document.getElementById('fnx')?.value||'';c.nextDate=document.getElementById('fnd')?.value||'';c.comment=document.getElementById('fco')?.value||'';c.resumeLink=document.getElementById('frl')?.value||'';c.meetTime=document.getElementById('fmt')?.value||'';c.hhLink=document.getElementById('fhh')?.value||'';
   if(document.getElementById('frr'))c.refuseReason=document.getElementById('frr').value;
   if(!REFUSE_STATUSES.includes(c.status))c.refuseReason='';
+  // Автоматически записываем событие если изменился этап или статус
+  const newStage=c.stage||'';
+  const newStatus=c.status||'';
+  if(oldStage!==newStage||oldStatus!==newStatus){
+    var eventDesc='';
+    if(oldStage!==newStage) eventDesc='Этап: '+( oldStage||'—')+' → '+newStage;
+    if(oldStatus!==newStatus){
+      if(eventDesc) eventDesc+=' | ';
+      eventDesc+='Статус: '+(oldStatus||'—')+' → '+newStatus;
+    }
+    if(c.nextDate){
+      var d=new Date(c.nextDate+'T12:00:00');
+      var ds=d.toLocaleDateString('ru-RU',{day:'2-digit',month:'2-digit',year:'numeric'});
+      if(c.meetTime&&c.meetTime!=='--:--') eventDesc+=' ('+ds+' '+c.meetTime+')';
+      else eventDesc+=' ('+ds+')';
+    }
+    D.history.unshift({
+      date:todayStr(),
+      cid:c.id,
+      name:c.name,
+      vacancy:c.vacancy||'',
+      event:newStage||newStatus,
+      desc:eventDesc,
+      result:'',
+      resp:'Я'
+    });
+  }
   saveData();closeModal();render();
 }
 function saveEditThenHist(id){
