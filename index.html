@@ -930,7 +930,7 @@ function openEdit(id){
 ${(()=>{
   const hist=D.history.filter(h=>h.cid===c.id).slice(0,15);
   if(!hist.length) return '';
-  const rows=hist.map(h=>'<tr style="border-bottom:1px solid #f0f0f0;"><td style="padding:6px 10px;white-space:nowrap;font-size:12px;color:#666;">'+h.date+'</td><td style="padding:6px 10px;font-size:12px;font-weight:600;">'+escHtml(h.event||'')+'</td><td style="padding:6px 10px;font-size:12px;color:#444;">'+escHtml(h.desc||'')+'</td></tr>').join('');
+  const rows=hist.map(h=>'<tr style="border-bottom:1px solid #f0f0f0;"><td style="padding:6px 10px;white-space:nowrap;font-size:12px;color:#666;">'+h.date+'</td><td style="padding:6px 10px;font-size:12px;font-weight:600;">'+(h.event||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')+'</td><td style="padding:6px 10px;font-size:12px;color:#444;">'+(h.desc||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')+'</td></tr>').join('');
   return '<hr style="margin:16px 0;border-color:#eee;"><div style="font-size:11px;font-weight:700;color:#1F3864;text-transform:uppercase;letter-spacing:0.05em;margin-bottom:8px;">📋 История кандидата</div><div style="max-height:180px;overflow-y:auto;border:1px solid #e8ecf0;border-radius:6px;"><table style="width:100%;border-collapse:collapse;"><tbody>'+rows+'</tbody></table></div>';
 })()}`);
   var _ec=D.candidates.find(x=>x.id===id);
