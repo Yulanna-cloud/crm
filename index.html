@@ -503,6 +503,34 @@ function saveManagerEdits(){
   saveManagers(mgrs);
 }
 
+// ── Автозаполнение следующего шага ───────────────────────────────
+function autoFillNextStep(stage, dateRaw) {
+  const nextEl = document.getElementById('fnx'); // поле следующий шаг
+  if (!nextEl) return;
+
+  // Форматируем дату если есть
+  let dateStr = '';
+  if (dateRaw) {
+    const d = new Date(dateRaw + 'T12:00:00');
+    dateStr = ' ' + d.toLocaleDateString('ru-RU', {day:'2-digit', month:'2-digit', year:'numeric'});
+  }
+
+  const map = {
+    'Отклик':                      'Назначить видео-интервью с HR',
+    'Интервью HR — назначено':     'Видео-интервью' + dateStr,
+    'Интервью HR — проведено':     'Назначить встречу с РОП',
+    'Интервью с РОП — назначено':  'Встреча в офисе' + dateStr,
+    'Интервью с РОП — проведено':  'Решение по кандидату, ОС',
+    'Оффер':                       'Дата выхода:' + dateStr,
+    'Обучение':                    'Дата начала обучения:' + dateStr,
+    'Работает':                    ''
+  };
+
+  if (stage in map) {
+    nextEl.value = map[stage];
+  }
+}
+
 function openSlotsManager(){
   var slots=getSlots();
   var today=todayStr();
@@ -879,9 +907,9 @@ function openEdit(id){
 <div class="fr"><label>ФИО</label><input id="fn" value="${c.name}"></div>
 <div class="f2"><div class="fr"><label>Вакансия</label><select id="fv">${sel(VACANCIES,c.vacancy)}</select></div><div class="fr"><label>Источник</label><input id="fs" value="${c.source||''}"></div></div>
 <div class="fr"><label>📞 Телефон</label><input id="fphone" value="${phone}"></div>
-<div class="f2"><div class="fr"><label>Этап</label><select id="fst">${selStage(c.stage)}</select></div><div class="fr"><label>Статус</label><select id="fsts" onchange="toggleRefuse(this,'editRefuse')">${sel(STATUSES,c.status)}</select></div></div>
+<div class="f2"><div class="fr"><label>Этап</label><select id="fst" onchange="autoFillNextStep(this.value,document.getElementById('fnd').value)">${selStage(c.stage)}</select></div><div class="fr"><label>Статус</label><select id="fsts" onchange="toggleRefuse(this,'editRefuse')">${sel(STATUSES,c.status)}</select></div></div>
 <div class="fr" id="editRefuse" style="${REFUSE_STATUSES.includes(c.status)?'':'display:none'}"><label>Причина отказа</label><select id="frr"><option value="">— выберите —</option>${REFUSE_REASONS.filter(x=>x).map(r=>`<option${r===c.refuseReason?' selected':''}>${r}</option>`).join('')}</select></div>
-<div class="f2"><div class="fr"><label>Следующий шаг</label><input id="fnx" value="${c.next||''}"></div><div class="fr"><label>Дата шага</label><input type="date" id="fnd" value="${c.nextDate||''}"></div></div>
+<div class="f2"><div class="fr"><label>Следующий шаг</label><input id="fnx" value="${c.next||''}"></div><div class="fr"><label>Дата шага</label><input type="date" id="fnd" value="${c.nextDate||''}" onchange="autoFillNextStep(document.getElementById('fst').value,this.value)"></div></div>
 <div class="fr"><label>Время встречи</label><input type="time" id="fmt" value="${c.meetTime||''}"></div>
 <div class="fr"><label>Комментарий</label><textarea id="fco">${c.comment||''}</textarea></div>
 <div class="fr"><label>Ссылка на резюме</label><input id="frl" value="${c.resumeLink||''}"></div>
