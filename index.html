@@ -289,7 +289,15 @@ function setSyncStatus(msg,type){
 }
 function syncToSheets(){
   setSyncStatus('⏳ Сохраняю...','loading');
-  fetch(SHEETS_URL,{method:'POST',body:JSON.stringify({candidates:D.candidates,history:D.history})})
+  fetch(SHEETS_URL,{method:'POST',body:JSON.stringify({
+    candidates:D.candidates,
+    history:D.history,
+    vacancies:VACANCIES,
+    vacColors:VAC_COLORS,
+    vacMeta:VAC_META,
+    slots:getSlots(),
+    managers:getManagers()
+  })})
     .then(r=>r.json()).then(res=>{res&&res.ok?setSyncStatus('✅ Сохранено!','ok'):setSyncStatus('❌ Ошибка','err');})
     .catch(()=>setSyncStatus('❌ Нет соединения','err'));
 }
@@ -304,7 +312,13 @@ function loadFromSheets(){
         D.candidates=res.data.candidates.map(c=>({...c,status:normalizeStatus(c.status),archived:localMap[c.id]||c.archived||false}));
       }
       if(res.data.history)D.history=res.data.history;
-      saveLocal();render();setSyncStatus('✅ Загружено!','ok');
+      if(res.data.vacancies&&res.data.vacancies.length){VACANCIES=res.data.vacancies;}
+      if(res.data.vacColors){VAC_COLORS=res.data.vacColors;}
+      if(res.data.vacMeta){VAC_META=res.data.vacMeta;}
+      if(res.data.slots){saveSlots(res.data.slots);}
+      if(res.data.managers){saveManagers(res.data.managers);}
+      saveVacancies();
+      saveLocal();render();updateFVSelect();setSyncStatus('✅ Загружено!','ok');
     }else setSyncStatus('❌ Ошибка загрузки','err');
   };
   script.src=SHEETS_URL+'?action=read&callback='+cbName;
